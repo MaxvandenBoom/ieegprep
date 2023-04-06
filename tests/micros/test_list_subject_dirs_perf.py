@@ -17,7 +17,8 @@ from pathlib import Path
 #
 # configuration
 #
-directory = '~/Documents/ccepAge'
+#directory = '~/Documents/ccepAge'
+directory = 'D:\\BIDS_erdetect'
 RUNS = 1000
 
 

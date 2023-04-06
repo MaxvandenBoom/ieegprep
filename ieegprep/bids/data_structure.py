@@ -199,13 +199,13 @@ def list_bids_datasets(bids_search_directory, dataset_extensions=None, subjects_
                     print('Warning: The subject-label in the file (\'sub-' + file_subject_label + '\') and the subject-label in the directory (\'' + dir_subject_label + '\') do not match.\n'
                           '         Assuming the subject-label from the file is correct')
 
-                # if subject-label from the file take precedence over the subject-label from the directory
-                # then (if needed) check that the subject-label from the file against the included subjects list
+                # it is possible that the subject-label from the file has replaced subject-label from the directory by now, therefore
+                # we re-check whether the subject-label (from the file) against the included subjects list here
                 if not subjects_filter is None and subjects_filter and not file_subject_label.lower() in subjects_filter:
                     continue
 
             # add the subject and data file
-            if not file_subject_label in datasets.keys():
+            if not ('sub-' + file_subject_label) in datasets.keys():
                 datasets['sub-' + file_subject_label] = []
             datasets['sub-' + file_subject_label].append(file)
 
