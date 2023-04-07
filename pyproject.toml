@@ -11,6 +11,12 @@ description = "A package to read and pre-process Intracranial Electroencephalogr
 readme = "README.md"
 license = { text="GPLv3" }
 requires-python = ">=3.8"
+dependencies = [
+    "numpy >= 1.22.3",
+    "pandas >= 1.4.2",
+    "pymef >= 1.3.4",
+    "psutil >= 5.9.4",
+]
 keywords = ["intracranial", "electroencephalography", "ieeg", "BIDS"]
 authors = [{ name="Max van den Boom", email="m.a.vandenboom84@gmail.com" }]
 classifiers = [

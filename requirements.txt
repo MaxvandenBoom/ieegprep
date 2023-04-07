@@ -1,5 +1,0 @@
-numpy>=1.22.3
-pandas>=1.4.2
-pymef>=1.3.4
-psutil>=5.9.4
-
