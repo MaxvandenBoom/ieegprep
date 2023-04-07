@@ -117,7 +117,7 @@ def multi_line_list(input_array, indent_length=45, first_line_caption='', items_
         if not len(sub_line) == 0:
             sub_line += item_delimiter
         sub_line += str(input_array[i])
-        if i > 0 and (i + 1) % items_per_line == 0:
+        if (i + 1) % items_per_line == 0:
             if not len(return_text) == 0:
                 return_text += '\n'
             return_text += current_line.ljust(indent_length, ' ') + sub_line
