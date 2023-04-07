@@ -1,0 +1,36 @@
+[build-system]
+requires = [
+    "setuptools>=42",
+    "wheel"
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ieegprep"
+description = "A package to read and pre-process Intracranial Electroencephalography (iEEG) data that is structured according to the Brain Imaging Data Structure (BIDS)"
+readme = "README.md"
+license = { text="GPLv3" }
+requires-python = ">=3.8"
+keywords = ["intracranial", "electroencephalography", "ieeg", "BIDS"]
+authors = [{ name="Max van den Boom", email="m.a.vandenboom84@gmail.com" }]
+classifiers = [
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.8",
+    "Topic :: Scientific/Engineering",
+]
+dynamic = ["version"]
+
+[tool.setuptools.dynamic]
+version = {attr = "ieegprep.version.__version__"}
+
+[project.urls]
+homepage = "https://github.com/MultimodalNeuroimagingLab/ieegprep"
+documentation = "https://github.com/MultimodalNeuroimagingLab/ieegprep"
+repository = "https://github.com/MultimodalNeuroimagingLab/ieegprep"
