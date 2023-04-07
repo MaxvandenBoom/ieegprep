@@ -127,13 +127,18 @@ def list_bids_datasets(bids_search_directory, dataset_extensions=None, subjects_
             # no subject name could be derived from the input path, this already breaks the BIDS specification.
 
             if strict_search:
-                print('Warning: Unable to extract a subject-label (\'sub-<label>\') from the BIDS input path. The BIDS standard dictates that data files should be in a subject directory.')
+                print('Warning: The input directory is neither a BIDS root directory (no subject directories were found)\n'
+                      '         nor a BIDS sub-directory (unable to extract a \'sub-<label>\' from the BIDS input\n'
+                      '         path. The BIDS standard dictates that data files should be in a subject directory).')
 
             else:
                 # try to search for datasets further down the path
 
-                print('Warning: Unable to extract a subject-label (\'sub-<label>\') from the BIDS input path. The BIDS standard dictates that data files should be in a subject directory.\n'
-                      '         Now recursively searching the directory for BIDS data files (that according to the BIDS standard should include a subject-label in their filename)')
+                print('Warning: The input directory is neither a BIDS root directory (no subject directories were found)\n'
+                      '         nor a BIDS sub-directory (unable to extract a \'sub-<label>\' from the BIDS input path. The BIDS\n'
+                      '         standard dictates that data files should be in a subject directory).\n\n'
+                      '         Now recursively searching the directory for BIDS data files (that according to the BIDS\n'
+                      '         standard should include a subject-label in their filename)...')
 
                 # search for files
                 data_files = _search_directory_for_datasets(bids_search_directory, extensions, name_search_patterns=subset_patterns, modalities=None)
@@ -194,11 +199,14 @@ def list_bids_datasets(bids_search_directory, dataset_extensions=None, subjects_
             # check if file subject label is equal to the sub-folder subject label
             if not file_subject_label == dir_subject_label[4:]:
                 if strict_search:
-                    print('Warning: The subject-label in the file (\'sub-' + file_subject_label + '\') and the subject-label in the directory (\'' + dir_subject_label + '\') do not match. Excluded file from listing.')
+                    print('Warning: The subject-label in the file (\'sub-' + file_subject_label + '\') and the subject-label\n'
+                          '         in the directory (\'' + dir_subject_label + '\') do not match.\n'
+                          '         Excluded file from listing.')
                     continue
 
                 else:
-                    print('Warning: The subject-label in the file (\'sub-' + file_subject_label + '\') and the subject-label in the directory (\'' + dir_subject_label + '\') do not match.\n'
+                    print('Warning: The subject-label in the file (\'sub-' + file_subject_label + '\') and the subject-label\n'
+                          '         in the directory (\'' + dir_subject_label + '\') do not match.\n'
                           '         Assuming the subject-label from the file is correct')
 
                 # it is possible that the subject-label from the file has replaced subject-label from the directory by now, therefore
