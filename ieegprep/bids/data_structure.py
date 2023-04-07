@@ -10,6 +10,8 @@ This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import os
+import re
+import posixpath
 import fnmatch
 import logging
 from ieegprep.fileio import VALID_FORMAT_EXTENSIONS
@@ -281,7 +283,8 @@ def _search_directory_for_datasets(search_path, dataset_extensions, name_search_
         search_path (str):                  The path to the directory to (recursively) search
         dataset_extensions (list/tuple):    The extensions that will be considered as datasets
         name_search_patterns (list/tuple):  A list of search strings. If a dataset name contains any of these subset
-                                            patterns it will be included in the search results.
+                                            patterns it will be included in the search results. The pattern search is
+                                            case-insensitive
         modalities (list/tuple):            A list of BIDS modalities. If specified, the function will only search for
                                             datasets in BIDS paths that match any of the specified modalities (e.g. '*/ieeg/*')
                                             To disable the modalities requirement, set this argument to None.
@@ -290,14 +293,35 @@ def _search_directory_for_datasets(search_path, dataset_extensions, name_search_
         A list of datasets that were found in the directory
 
     """
+
+    # reproduce the filter function from fnmatch but compile a case-insensitive regex
+    # Note: this allows the search to be case-insensitive, but will leave the casing intact on the returned filenames (important file unix filepaths)
+    # (which would be more complicated in a solution where all the search patterns and all filenames would be lowered)
+    def filter_case_insensitive(names, pat):
+        result = []
+        pat = os.path.normcase(pat)
+        regex = fnmatch.translate(pat)
+        match = re.compile(regex, re.IGNORECASE).match
+        if os.path is posixpath:
+            for name in names:
+                if match(name):
+                    result.append(name)
+        else:
+            for name in names:
+                if match(os.path.normcase(name)):
+                    result.append(name)
+        return result
+
+
+    # loop over all folders within the search path
     subsets = []
     for root, dirs, files in os.walk(search_path):
         if modalities is None or root.lower().endswith(modalities):
             for extension in dataset_extensions:
                 for search_pattern in name_search_patterns:
                     search_pattern = '*' + search_pattern + '*' if search_pattern else '*'
-                    subsets.extend([os.path.join(root, f) for f in fnmatch.filter(files, search_pattern + extension)])
-                    subsets.extend([os.path.join(root, f) for f in fnmatch.filter(dirs, search_pattern + extension)])
+                    subsets.extend([os.path.join(root, f) for f in filter_case_insensitive(files, search_pattern + extension)])
+                    subsets.extend([os.path.join(root, f) for f in filter_case_insensitive(dirs, search_pattern + extension)])
 
     # in the case of multiple search patterns, filenames can satisfy multiple patterns and therefore occur multiple
     # times in the results. Check and remove duplicates here
