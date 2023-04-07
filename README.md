@@ -1,11 +1,11 @@
 # IeegPrep
-IeegPrep is a python library to read and pre-process Intracranial Electroencephalography (iEEG) data that is structured according to the iEEG Brain Imaging Data Structure (BIDS) 
+IeegPrep is a python library to read and pre-process Intracranial Electroencephalography (iEEG) data that is structured according to the Brain Imaging Data Structure (BIDS) 
 
 
 ## Install
 
 ```
-pip install ieegpreg
+pip install ieegprep
 ```
 
 ## Usage
@@ -20,9 +20,7 @@ pip install ieegpreg
 - Written by Max van den Boom (Multimodal Neuroimaging Lab, Mayo Clinic, Rochester MN)
 - Dependencies:
   - PyMef by Jan Cimbalnik, Matt Stead, Ben Brinkmann, and Dan Crepeau (https://github.com/msel-source/pymef)
-  - BIDS-validator (https://github.com/bids-standard/bids-validator)
   - NumPy
-  - SciPy
   - Pandas
   - psutil
 
