@@ -109,7 +109,7 @@ def list_bids_datasets(bids_search_directory, dataset_extensions=None, subjects_
             # filter and add each subject as a subject directory (with the subject folder for further searching of subsets)
             for subject_label in sub_folders:
                 if subject_label[4:].lower() in subjects_filter:
-                    subject_dirs[subject_label] = bids_search_directory
+                    subject_dirs[subject_label] = os.path.join(bids_search_directory, subject_label)
         else:
 
             # add each subject as a subject directory (with the subject folder for further searching of subsets)
