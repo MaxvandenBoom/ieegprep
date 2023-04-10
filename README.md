@@ -23,5 +23,7 @@ pip install ieegprep
   - NumPy
   - Pandas
   - psutil
-
+- The new EDF and BrainVision readers are in part adaptations of the Fieldtrip code (by Robert Robert Oostenveld) and replicate some of the header logic from the MNE package (by Teon Brooks, Stefan Appelhoff and others)  
+  
 - This project was funded by the National Institute Of Mental Health of the National Institutes of Health Award Number R01MH122258 to Dora Hermes
+
