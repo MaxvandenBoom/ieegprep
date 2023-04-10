@@ -9,5 +9,4 @@ if sys.version_info < (3, 8, 0):
 from ieegprep.version import __version__
 from ieegprep.bids.data_epoch import load_data_epochs, load_data_epochs_averages
 from ieegprep.bids.rereferencing import RerefStruct
-from ieegprep.fileio.IeegDataReader import VALID_FORMAT_EXTENSIONS
-
+from ieegprep.fileio.IeegDataReader import VALID_FORMAT_EXTENSIONS, IeegDataReader
