@@ -1405,7 +1405,7 @@ def __load_data_epochs__by_channels__withPrep(average, data_reader, retrieve_cha
                                     # channel has exclusion epochs
 
                                     # create a binary numpy vector of the sample to include
-                                    channel_includes = np.ones((len(channel_data[channel]),), dtype=np.bool)
+                                    channel_includes = np.ones((len(channel_data[channel]),), dtype=bool)
                                     for channel_exclude_epoch in early_reref.channel_exclude_epochs[channel]:
                                         exclude_sample_start = int(round(channel_exclude_epoch[0] * data_reader.sampling_rate))
                                         exclude_sample_end = int(round(channel_exclude_epoch[1] * data_reader.sampling_rate))
@@ -1551,7 +1551,7 @@ def __load_data_epochs__by_channels__withPrep(average, data_reader, retrieve_cha
                                     # channel has exclusion epochs
 
                                     # create a binary numpy vector of the sample to include
-                                    channel_includes = np.ones((len(channel_data[channel]),), dtype=np.bool)
+                                    channel_includes = np.ones((len(channel_data[channel]),), dtype=bool)
                                     for channel_exclude_epoch in late_reref.channel_exclude_epochs[channel]:
                                         exclude_sample_start = int(round(channel_exclude_epoch[0] * data_reader.sampling_rate))
                                         exclude_sample_end = int(round(channel_exclude_epoch[1] * data_reader.sampling_rate))
