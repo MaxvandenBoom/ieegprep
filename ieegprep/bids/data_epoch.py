@@ -589,7 +589,8 @@ def __load_data_epochs__by_trial(data_reader, retrieve_channels,
 
         # load the trial data
         try:
-            trial_data = data_reader.retrieve_sample_range_data(retrieve_channels, trial_sample_start, trial_sample_end, False)
+            trial_data = data_reader.retrieve_sample_range_data(trial_sample_start, trial_sample_end,
+                                                                channels=retrieve_channels, ensure_own_data=False)
         except (RuntimeError, LookupError):
             raise RuntimeError('Could not load data')
 
@@ -740,7 +741,8 @@ def __load_data_epoch_averages__by_condition_trial(data_reader, retrieve_channel
 
             # load the trial data
             try:
-                trial_data = data_reader.retrieve_sample_range_data(retrieve_channels, trial_sample_start, trial_sample_end, False)
+                trial_data = data_reader.retrieve_sample_range_data(trial_sample_start, trial_sample_end,
+                                                                    channels=retrieve_channels, ensure_own_data=False)
             except (RuntimeError, LookupError):
                 raise RuntimeError('Could not load data')
 
@@ -936,8 +938,10 @@ def __subload_data_epoch_averages__from_channel__by_condition_trials(ref_data, r
                 # retrieve using reader
 
                 try:
-                    trial_baseline_data = data_reader.retrieve_sample_range_data(channel_name, baseline_start_sample, baseline_end_sample, False)[0]
-                    trial_trial_data = data_reader.retrieve_sample_range_data(channel_name, trial_sample_start, trial_sample_end, False)[0]
+                    trial_baseline_data = data_reader.retrieve_sample_range_data(baseline_start_sample, baseline_end_sample,
+                                                                                 channels=channel_name, ensure_own_data=False)[0]
+                    trial_trial_data = data_reader.retrieve_sample_range_data(trial_sample_start, trial_sample_end,
+                                                                              channels=channel_name, ensure_own_data=False)[0]
                 except (RuntimeError, LookupError):
                     raise RuntimeError('Could not load data')
 

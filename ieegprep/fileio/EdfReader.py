@@ -101,15 +101,15 @@ class EdfReader(IeegDataReader):
                 return self.edf_data[channel_index, :]
 
 
-    def retrieve_sample_range_data(self, channels, sample_start, sample_end, ensure_own_data=True):
+    def retrieve_sample_range_data(self, sample_start, sample_end, channels=None, ensure_own_data=True):
         """
         Retrieve a specific range of EDF data for the requested channels
 
         Args:
-            channels (str, list or tuple):  The channel(s) for which to retrieve the data.
-                                            If empty, all channels will be retrieved
             sample_start (int):             The start-point in time (in samples) to start reading from (0-based)
             sample_end (int):               The sample to end the reading at (0-based)
+            channels (str, list or tuple):  The channel(s) for which to retrieve the data.
+                                            If empty, all channels will be retrieved
             ensure_own_data (bool):         Should ensure the return a numpy array has it's own data (is not a view)
 
         Returns:

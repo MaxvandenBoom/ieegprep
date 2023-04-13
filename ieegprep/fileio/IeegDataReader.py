@@ -66,7 +66,7 @@ class IeegDataReader(object):
     def retrieve_channel_data(self, channel_name, ensure_own_data=True): pass
 
     @abstractmethod
-    def retrieve_sample_range_data(self, channels, sample_start, sample_end, ensure_own_data=True): pass
+    def retrieve_sample_range_data(self, sample_start, sample_end, channels=None, ensure_own_data=True): pass
 
     @staticmethod
     def check_sample_arguments(start_sample, end_sample, number_of_samples, number_of_channels):

@@ -151,15 +151,15 @@ class Mef3Reader(IeegDataReader):
                 return self.mef_data[channel_index]
 
 
-    def retrieve_sample_range_data(self, channels, sample_start, sample_end, ensure_own_data=True):
+    def retrieve_sample_range_data(self, sample_start, sample_end, channels=None, ensure_own_data=True):
         """
         Retrieve a specific range of MEF3 data for the requested channels
 
         Args:
-            channels (str, list or tuple):  The channel(s) for which to retrieve the data.
-                                            If empty, all channels will be retrieved
             sample_start (int):             The start-point in time (in samples) to start reading from (0-based)
             sample_end (int):               The sample to end the reading at (0-based)
+            channels (str, list or tuple):  The channel(s) for which to retrieve the data.
+                                            If empty, all channels will be retrieved
             ensure_own_data (bool):         Should ensure the return a numpy array has it's own data (is not a view)
 
         Returns:
@@ -214,6 +214,7 @@ class Mef3Reader(IeegDataReader):
             for counter in range(len(channels)):
 
                 # retrieve the index of the channel
+
                 try:
                     channel_index = IeegDataReader.__retrieve_channel_metadata_mef(self.mef_session, self.channel_names.index(channels[counter]))
                 except ValueError:
