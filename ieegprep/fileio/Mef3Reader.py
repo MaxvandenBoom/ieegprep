@@ -213,10 +213,9 @@ class Mef3Reader(IeegDataReader):
             # loop over the channels to retrieve
             for counter in range(len(channels)):
 
-                # retrieve the index of the channel
-
+                # retrieve the index by channel name
                 try:
-                    channel_index = IeegDataReader.__retrieve_channel_metadata_mef(self.mef_session, self.channel_names.index(channels[counter]))
+                    channel_index = self.channel_names.index(channels[counter])
                 except ValueError:
                     raise LookupError('Could not find channel')
 
