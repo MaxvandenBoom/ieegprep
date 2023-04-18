@@ -20,6 +20,8 @@ from configparser import ConfigParser
 from .IeegDataReader import IeegDataReader
 from ieegprep.utils.misc import allocate_array
 
+DEFAULT_CHUNK_SIZE_MB = 10          # the default chunk size (in MB)
+
 
 class BrainVisionReader(IeegDataReader):
 
@@ -410,7 +412,7 @@ class BrainVisionReader(IeegDataReader):
 
 
     @staticmethod
-    def bv_read_data(filepath, hdr=None, channels=None, start_sample=0, end_sample=-1, unit='uV', use_memmap=True, chunked_read=False) -> tuple:
+    def bv_read_data(filepath, hdr=None, channels=None, start_sample=0, end_sample=-1, unit='uV', use_memmap=False, chunked_read=True):
         """
         Read data from a BrainVision (.eeg) file
 
@@ -449,9 +451,10 @@ class BrainVisionReader(IeegDataReader):
                                             speed up (repetitive) reading. If false, the standard system read operations
                                             will be used (slightly slower for repetitive reading from the file but does not
                                             explicitly require virtual memory).
-            chunked_read (bool):            Whether to read or transfer the data in chunks. If true, then reads from
-                                            disk (stdIO) or transfers from virtual memory (memmap) are split up in xxMB
-                                            chunks. If false, then often all data is read or transferred in one big block.
+            chunked_read (bool/int):        Whether to read or transfer data in chunks of a certain size or as one block.
+                                            If true then chunked reading is enabled (with a default size of 10MB). Passing
+                                            false, 0 or None disables chunked reading. Passing an integer of 1 or higher
+                                            will enable chunked reading in iterations of the size of that integer (in MB).
 
         Returns:
             hdr                             A dictionary with header information
@@ -482,6 +485,23 @@ class BrainVisionReader(IeegDataReader):
         if unit.lower() not in ('uv', 'mv', 'v'):
             logging.error('Invalid unit ' + unit + ' to retrieve the data in. Only options are uV, mV or V')
             raise RuntimeError('Invalid unit')
+
+        # check chunked read argument
+        if chunked_read is None:
+            chunked_read = 0
+        elif isinstance(chunked_read, bool):
+            chunked_read = DEFAULT_CHUNK_SIZE_MB if chunked_read else 0
+        elif isinstance(chunked_read, int):
+            if chunked_read != 0 and chunked_read < 1:
+                logging.error('Invalid number for chunked_read argument (' + str(chunked_read) + ').\n'
+                              'Pass 0, False or None to disable chunked reading, or pass an integer with a value of 1 or higher to enable chunked reading with a specific chunk size\n'
+                              'Default is chunking enabled with a size of ' + str(DEFAULT_CHUNK_SIZE_MB) + ' MB\n\n')
+                raise TypeError('Invalid chunked_read argument')
+        else:
+            logging.error('Unknown chunked_read argument.\n'
+                          'Pass 0, False or None to disable chunked reading, or pass an integer with a value of 1 or higher to enable chunked reading with a specific chunk size.\n'
+                          'Default is chunking enabled with a size of ' + str(DEFAULT_CHUNK_SIZE_MB) + ' MB\n\n')
+            raise TypeError('Invalid chunked_read argument')
 
         # check file existence
         if not os.path.exists(filepath):
@@ -638,12 +658,12 @@ class BrainVisionReader(IeegDataReader):
 
                 # prevent per sample reading (due to reading non-chunked, standard IO and picking channels) because
                 # it is notoriously slow, switch to chunked instead
-                if not chunked_read and not use_memmap and not (channel_indices == list(range(0, num_channels_in_file))):
+                if chunked_read == 0 and not use_memmap and not (channel_indices == list(range(0, num_channels_in_file))):
                     logging.warning('The current read settings (non-chunked, standard IO and picking channels will result in per sample reading, this is highly discouraged and exists for testing purposes only. Switching to chunked reading instead')
-                    chunked_read = True
+                    chunked_read = DEFAULT_CHUNK_SIZE_MB
 
                 #
-                if chunked_read:
+                if chunked_read > 0:
                     # chunked reading
                     #print('multiplexed - chunked - memmap = ' + str(use_memmap))
 
@@ -658,7 +678,7 @@ class BrainVisionReader(IeegDataReader):
 
                     # determine the size (in samples) chucks assuming ~10mb per read
                     # rounded down to the number of channels
-                    chunk_size = ((int(10e6) // sample_size) // num_channels_in_file) * num_channels_in_file
+                    chunk_size = ((int(chunked_read * 1e6) // sample_size) // num_channels_in_file) * num_channels_in_file
                     assert (chunk_size != 0)
 
                     def read_binary_chunked(rb_chunk_size, rb_range_index, rb_start, rb_length):
@@ -841,13 +861,13 @@ class BrainVisionReader(IeegDataReader):
                         logging.error('Error while opening data file \'' + data_file + '\'')
                         raise IOError('Error while opening data file')
 
-                if chunked_read:
+                if chunked_read > 0:
                     # chunked reading
                     #print('vectorized - chunked - memmap = ' + str(use_memmap))
 
                     # determine the size (in samples) chucks assuming ~10mb per read
                     # rounded down to the number of channels (also here because than we ensure that we assign in chunks as a multiple of the channel dimension)
-                    chunk_size = ((int(10e6) // sample_size))
+                    chunk_size = (int(chunked_read * 1e6) // sample_size)
                     assert(chunk_size != 0)
 
                     # read function

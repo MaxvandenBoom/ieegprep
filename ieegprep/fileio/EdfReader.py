@@ -3,7 +3,7 @@ Functions to read European Data Format (EDF) files
 
 
 =====================================================
-Copyright 2022, Max van den Boom (Multimodal Neuroimaging Lab, Mayo Clinic, Rochester MN)
+Copyright 2023, Max van den Boom (Multimodal Neuroimaging Lab, Mayo Clinic, Rochester MN)
 
 Adapted from Fieldtrip (by Robert Robert Oostenveld) while replicating some additional header logic from the MNE
 package (Teon Brooks, Martin Billinger, Nicolas Barascud, Stefan Appelhoff, Joan Massich, Clemens Brunner, Jeroen Van Der Donckt)
@@ -18,6 +18,8 @@ import math
 import logging
 import numpy as np
 from .IeegDataReader import IeegDataReader
+
+DEFAULT_CHUNK_SIZE_MB = 10          # the default chunk size (in MB)
 
 
 class EdfReader(IeegDataReader):
@@ -436,7 +438,7 @@ class EdfReader(IeegDataReader):
 
 
     @staticmethod
-    def edf_read_data(filepath, hdr=None, channels=None, start_sample=0, end_sample=-1, unit='uV', use_memmap=True, chunked_read=True):
+    def edf_read_data(filepath, hdr=None, channels=None, start_sample=0, end_sample=-1, unit='uV', use_memmap=False, chunked_read=True):
         """
         Read data from a European Data Format (.edf) file
 
@@ -474,7 +476,11 @@ class EdfReader(IeegDataReader):
                                             If true, the data file is first loaded/cached into virtual memory (pagefile) to
                                             speed up (repetitive) reading. If false, the standard system read operations
                                             will be used (slightly slower for repetitive reading from the file but does not
-                                            explicitly require virtual memory).
+                                            explicitly invoke virtual memory).
+            chunked_read (bool/int):        Whether to read or transfer data in chunks of a certain size or as one block.
+                                            If true then chunked reading is enabled (with a default size of 10MB). Passing
+                                            false, 0 or None disables chunked reading. Passing an integer of 1 or higher
+                                            will enable chunked reading in iterations of the size of that integer (in MB).
 
         Returns:
             hdr                             A dictionary with header information
@@ -505,7 +511,24 @@ class EdfReader(IeegDataReader):
         # check unit argument
         if unit.lower() not in ('uv', 'mv', 'v'):
             logging.error('Invalid unit ' + unit + ' to retrieve the data in. Only options are uV, mV or V')
-            raise RuntimeError('Invalid unit')
+            raise TypeError('Invalid unit')
+
+        # check chunked read argument
+        if chunked_read is None:
+            chunked_read = 0
+        elif isinstance(chunked_read, bool):
+            chunked_read = DEFAULT_CHUNK_SIZE_MB if chunked_read else 0
+        elif isinstance(chunked_read, int):
+            if chunked_read != 0 and chunked_read < 1:
+                logging.error('Invalid number for chunked_read argument (' + str(chunked_read) + ').\n'
+                              'Pass 0, False or None to disable chunked reading, or pass an integer with a value of 1 or higher to enable chunked reading with a specific chunk size\n'
+                              'Default is chunking enabled with a size of ' + str(DEFAULT_CHUNK_SIZE_MB) + ' MB\n\n')
+                raise TypeError('Invalid chunked_read argument')
+        else:
+            logging.error('Unknown chunked_read argument.\n'
+                          'Pass 0, False or None to disable chunked reading, or pass an integer with a value of 1 or higher to enable chunked reading with a specific chunk size.\n'
+                          'Default is chunking enabled with a size of ' + str(DEFAULT_CHUNK_SIZE_MB) + ' MB\n\n')
+            raise TypeError('Invalid chunked_read argument')
 
         # check file existence
         if not os.path.exists(filepath):
@@ -530,6 +553,8 @@ class EdfReader(IeegDataReader):
         if hdr['number_of_samples'] == 0:
             logging.error('no samples in the data file according to the header')
             raise RuntimeError('no samples in the data')
+
+
 
 
         #
@@ -624,18 +649,24 @@ class EdfReader(IeegDataReader):
         # have an offset, cal or unit gain value. So default to float64 to accommodate more precision
         data = np.empty(output_dimensions, dtype=np.float64)
 
-        # determine whether to read chunked
+
+        #TODO: test whether this holds true for multiple OSs/versions
         #if use_memmap:
-        #    chunked_read = True
+        #    chunked_read = 10
         #else:
             # Note: the consideration here depends on how the number of channels to be retrieved compares to the
             #       number of channels (in a record), see tipping point 4/149 and 10/149 channel benchmark.
             #       More testing is needed. However, often just a single channel is loaded, in this case non-chunked
             #       is faster; else wise chunked read.
+            #if len(channel_indices) == 1:
+            #    chunked_read = 0
+            #else:
+            #    chunked_read = 10
         #    chunked_read = len(channel_indices) != 1
 
+
         #
-        if chunked_read:
+        if chunked_read > 0:
             # chunked reading
             #print('chunked - memmap = ' + str(use_memmap))
 
@@ -648,9 +679,9 @@ class EdfReader(IeegDataReader):
                     logging.error('Error while opening data file \'' + filepath + '\'')
                     raise IOError('Error while opening data file')
 
-            # determine how many record there are in each chunk (samplesize is 2 bytes for EDF), assuming chunks of ~10mb
-            # rounded down to the number of channels
-            record_chunk_size = ((int(10e6) // 2) // hdr['recordblock_length_in_samples'])
+            # determine how many record there are in each chunk (samplesize is 2 bytes for EDF), assuming
+            # chunks of <chunked_read>MB rounded down to the number of channels
+            record_chunk_size = ((int(chunked_read * 1e6) // 2) // hdr['recordblock_length_in_samples'])
             if record_chunk_size < 1:
                 record_chunk_size = 1
 
