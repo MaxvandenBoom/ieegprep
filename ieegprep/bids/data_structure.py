@@ -129,7 +129,7 @@ def list_bids_datasets(bids_search_directory, dataset_extensions=None, subjects_
             if strict_search:
                 print('Warning: The input directory is neither a BIDS root directory (no subject directories were found)\n'
                       '         nor a BIDS sub-directory (unable to extract a \'sub-<label>\' from the BIDS input\n'
-                      '         path. The BIDS standard dictates that data files should be in a subject directory).')
+                      '         path. The BIDS standard dictates that data files should be in a subject directory).\n')
 
             else:
                 # try to search for datasets further down the path
@@ -138,7 +138,7 @@ def list_bids_datasets(bids_search_directory, dataset_extensions=None, subjects_
                       '         nor a BIDS sub-directory (unable to extract a \'sub-<label>\' from the BIDS input path. The BIDS\n'
                       '         standard dictates that data files should be in a subject directory).\n\n'
                       '         Now recursively searching the directory for BIDS data files (that according to the BIDS\n'
-                      '         standard should include a subject-label in their filename)...')
+                      '         standard should include a subject-label in their filename)...\n')
 
                 # search for files
                 data_files = _search_directory_for_datasets(bids_search_directory, extensions, name_search_patterns=subset_patterns, modalities=None)
@@ -148,7 +148,7 @@ def list_bids_datasets(bids_search_directory, dataset_extensions=None, subjects_
                     file_subject_label = _extract_subject_label_from_path(file)
 
                     if file_subject_label is None:
-                        print('Warning: Unable to determine the subject label for dataset \'' + file + '\'. Excluded from listing.')
+                        print('Warning: Unable to determine the subject label for dataset \'' + file + '\'. Excluded from listing.\n')
                     else:
 
                         # apply the subject filter if there is one
@@ -189,11 +189,11 @@ def list_bids_datasets(bids_search_directory, dataset_extensions=None, subjects_
             # check if the file's subject label corresponds with the subject-label from the directory
             if file_subject_label is None:
                 if strict_search:
-                    print('Warning: Unable to determine the subject-label for dataset \'' + file + '\'. Excluded file from listing.')
+                    print('Warning: Unable to determine the subject-label for dataset \'' + file + '\'. Excluded file from listing.\n')
                     continue
                 else:
                     print('Warning: Unable to determine the subject-label for dataset \'' + file + '\'.\n'
-                          '         Assuming the subject-label from the directory as the subject-label for the file')
+                          '         Assuming the subject-label from the directory as the subject-label for the file\n')
                     file_subject_label = dir_subject_label[4:]
 
             # check if file subject label is equal to the sub-folder subject label
@@ -201,13 +201,13 @@ def list_bids_datasets(bids_search_directory, dataset_extensions=None, subjects_
                 if strict_search:
                     print('Warning: The subject-label in the file (\'sub-' + file_subject_label + '\') and the subject-label\n'
                           '         in the directory (\'' + dir_subject_label + '\') do not match.\n'
-                          '         Excluded file from listing.')
+                          '         Excluded file from listing.\n')
                     continue
 
                 else:
                     print('Warning: The subject-label in the file (\'sub-' + file_subject_label + '\') and the subject-label\n'
                           '         in the directory (\'' + dir_subject_label + '\') do not match.\n'
-                          '         Assuming the subject-label from the file is correct')
+                          '         Assuming the subject-label from the file is correct\n')
 
                 # it is possible that the subject-label from the file has replaced subject-label from the directory by now, therefore
                 # we re-check whether the subject-label (from the file) against the included subjects list here
