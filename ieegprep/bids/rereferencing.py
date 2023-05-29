@@ -22,6 +22,11 @@ class RerefStruct:
     channel_group = dict()              # for each channel, the re-reference group that should be used to re-referencing it
     channel_exclude_epochs = None       # a dictionary with for each channel the epochs that should be excluded from re-referencing
 
+    late_group_reselect_varPerc = None  # dynamic channel selection within each late re-referencing group based on variance, re-reference using a common average of only the channels with lowest xx% variance around the epoch
+    # TODO: picking re-referencing channels based on variance within re-referencing groups can only happen when the channels in each group are
+    #       mutually exclusive (because then the 'data' variable in the '__load_data_epochs__by_channels__withPrep' function is used both to
+    #       store the average data to calculate the common average and the average data after the common average is applied)
+
     def __init__(self, groups, channel_reref_group):
         self.groups = groups
         self.channel_group = channel_reref_group
@@ -144,7 +149,7 @@ class RerefStruct:
 
         return all_groups
 
-    def set_exclude_reref_epochs(self, exclude_onsets, exclude_epoch=(-.01, 1.0), split_channel_names=None):
+    def set_exclude_reref_epochs(self, exclude_onsets, exclude_epoch=(-1.0, 2.0), split_channel_names=None):
         """
         Set channel-epochs that should be excluded from re-referencing
         (this can be used when electrical stimulation was performed on specific channels at specific moments in the data)

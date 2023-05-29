@@ -11,13 +11,14 @@ You should have received a copy of the GNU General Public License along with thi
 """
 import gc
 import logging
+import warnings
 import numpy as np
 from scipy import signal
 
 from ieegprep.fileio.IeegDataReader import IeegDataReader, VALID_FORMAT_EXTENSIONS
 from ieegprep.utils.misc import allocate_array
-from ieegprep.utils.console import print_progressbar
-
+from ieegprep.utils.console import multi_line_list, print_progressbar
+LOGGING_CAPTION_INDENT_LENGTH   = 50      # TODO: also in erdetect.core.config
 
 
 def load_data_epochs(data_path, retrieve_channels, onsets,
@@ -181,21 +182,21 @@ def load_data_epochs_averages(data_path, retrieve_channels, conditions_onsets,
                                               onset to 100ms before the trial onset to calculate the baseline on);
                                               this argument is only used when baseline_norm is set to mean or median
         out_of_bound_handling (str):          Configure the handling of out-of-bound trial epochs;
-                                                'error': (default) Throw an error and return when any epoch is out of bound;
-                                                'first_last_only': Allows only the first trial epoch to start before the
-                                                                   data-set and the last trial epoch to end beyond the
-                                                                   length of the data-set, the trial epochs will be padded
-                                                                   with NaN values. Note that the first and last trial are
-                                                                   determined by the first and last entry in the 'onsets'
-                                                                   parameter, which is not sorted by this function;
-                                                'allow':           Allow trial epochs to be out-of-bound, NaNs values will
-                                                                   be used for part of, or the entire, the trial epoch
+                                                 'error': (default) Throw an error and return when any epoch is out of bound;
+                                                 'first_last_only': Allows only the first trial epoch to start before the
+                                                                    data-set and the last trial epoch to end beyond the
+                                                                    length of the data-set, the trial epochs will be padded
+                                                                    with NaN values. Note that the first and last trial are
+                                                                    determined by the first and last entry in the 'onsets'
+                                                                    parameter, which is not sorted by this function;
+                                                 'allow':           Allow trial epochs to be out-of-bound, NaNs values will
+                                                                    be used for part of, or the entire, the trial epoch
         metric_callbacks (func or tuple):     Function or tuple of functions that are called to calculate metrics based
                                               on subsets of the un-averaged data. The function(s) are called per
                                               with the following input arguments:
-                                                sampling_rate -    The sampling rate of the data
-                                                data -             A subset of the data in a 2d array: trials x samples
-                                                baseline -         The corresponding baseline values for the trials
+                                                 sampling_rate -    The sampling rate of the data
+                                                 data -             A subset of the data in a 2d array: trials x samples
+                                                 baseline -         The corresponding baseline values for the trials
                                               If callbacks are defined, a third variable is returned that holds the
                                               return values of the metric callbacks in the format: channel x condition x metric
         high_pass (bool):                     Preprocess with high-pass filtering (true) or without filtering (false)
@@ -208,7 +209,7 @@ def load_data_epochs_averages(data_path, retrieve_channels, conditions_onsets,
         late_reref (None or RerefStruct):     Preprocess with late (after line-noise removal) re-referencing. Generate a
                                               RerefStruct instance using one of the factory methods (e.g. generate_car) and
                                               pass it here to allow for re-referencing. Pass None to skip late re-referencing.
-        preproc_priority (str):              Set the preprocessing priority, can be set to either 'mem' (default) or 'speed'
+        preproc_priority (str):               Set the preprocessing priority, can be set to either 'mem' (default) or 'speed'
 
     Returns:
         sampling_rate (int or double):        The sampling rate at which the data was acquired
@@ -347,6 +348,7 @@ def __prepare_input(data_path, trial_epoch, baseline_norm, baseline_epoch, out_o
             logging.error('Invalid \'baseline_epoch\' parameter, the given end-point (at ' + str(baseline_epoch[1]) + ') lies before the start-point (at ' + str(baseline_epoch[0]) + ')')
             raise ValueError('Invalid \'baseline_epoch\' parameter')
 
+        # TODO: check mef3 baseline in trial, might not be a restriction for all epoching routines
         if data_reader.data_format == 'mef3':
             if baseline_epoch[0] < trial_epoch[0]:
                 logging.error('Invalid \'baseline_epoch\' parameter, the given baseline start-point (at ' + str(baseline_epoch[0]) + ') lies before the trial start-point (at ' + str(trial_epoch[0]) + ')')
@@ -370,11 +372,15 @@ def __prepare_input(data_path, trial_epoch, baseline_norm, baseline_epoch, out_o
 
 
 def __epoch_data__from_channel_data__by_trials(ref_data, channel_idx, channel_data, sampling_rate,
-                                               onsets, trial_num_samples, trial_epoch,
-                                               baseline_num_samples, baseline_method, baseline_epoch, out_of_bound_method):
+                                               onsets, trial_epoch,
+                                               baseline_method, baseline_epoch, out_of_bound_method):
     """
     Epoch the trial-data for a single channel by looping over the trial-onsets
     """
+
+    # calculate the size of the time dimension (in samples)
+    trial_num_samples = int(round(abs(trial_epoch[1] - trial_epoch[0]) * sampling_rate))
+    baseline_num_samples = int(round(abs(baseline_epoch[1] - baseline_epoch[0]) * sampling_rate))
 
     # loop through the trials
     for trial_idx in range(len(onsets)):
@@ -488,9 +494,8 @@ def __load_data_epochs__by_channels(data_reader, retrieve_channels,
             # epoch the channel data
             __epoch_data__from_channel_data__by_trials(data,
                                                       channel_idx, channel_data, data_reader.sampling_rate,
-                                                      onsets, trial_num_samples, trial_epoch,
-                                                      baseline_num_samples, baseline_method, baseline_epoch,
-                                                      out_of_bound_method)
+                                                      onsets, trial_epoch,
+                                                      baseline_method, baseline_epoch, out_of_bound_method)
         except RuntimeError:
             raise RuntimeError('Error upon loading and epoching data')
 
@@ -839,16 +844,28 @@ def __load_data_epoch_averages__by_condition_trial(data_reader, retrieve_channel
     return data_reader.sampling_rate, data, metric_values
 
 
-def __subload_data_epoch_averages__from_channel__by_condition_trials(ref_data, ref_metric_values, data_reader, channel_idx, channel_name, channel_data, conditions_onsets,
-                                                                     trial_num_samples, trial_epoch, baseline_num_samples, baseline_method,
-                                                                     baseline_epoch, out_of_bound_method, metric_callbacks):
+def __subload_data_epoch_averages__from_channel__by_condition_trials(ref_data, ref_metric_values,
+                                                                     data_reader, channel_idx, channel_name, channel_data,
+                                                                     conditions_onsets, trial_epoch,
+                                                                     baseline_method, baseline_epoch,
+                                                                     out_of_bound_method, metric_callbacks,
+                                                                     exclude_epochs=None,
+                                                                     var_epoch=None, ref_var=None,
+                                                                     CAR_per_condition=None):
     """
-    Starting from a specific channel, load data epoch averages to an already existing/initialized
+    For a specific channel, load data epoch averages to an already existing/initialized
     matrix (format: channel x condition x time) by looping over conditions and then within that channel-condition
     combination loop over each of the trials to load the specific channel-condition-trial data.
 
-    ref_data : Reference to the numpy matrix that holds all the epoch averages. Reference is also returned on success
-    ref_metric_values: Reference to the ... that holds all the metric values. Reference is also returned on success
+    Args:
+        ...
+        ref_data (ref ndarray):             Reference to the numpy matrix that holds all the epoch averages. Reference is also returned on success
+        ref_metric_values (ref ndarray):    Reference to the ... that holds all the metric values. Reference is also returned on success
+        exclude_epochs (ndarray):           List of ranges (tuples) to exclude. Each tuple should contain two values that
+                                            indicate the start-time and end-time of what should be excluded (nanned)
+        CAR_per_condition:                  If set, common averages re-referencing will be applied...
+    Returns:
+        variances (ndarray):                Array the variance for each condition
 
     """
 
@@ -857,25 +874,77 @@ def __subload_data_epoch_averages__from_channel__by_condition_trials(ref_data, r
     else:
         channel_num_samples = channel_data.size
 
+    # calculate the size of the time dimension (in samples)
+    trial_num_samples = int(round(abs(trial_epoch[1] - trial_epoch[0]) * data_reader.sampling_rate))
+
+    if baseline_method > 0:
+        baseline_num_samples = int(round(abs(baseline_epoch[1] - baseline_epoch[0]) * data_reader.sampling_rate))
+
+        # if the epochs should be baselined and common average re-referencing should be applied, make sure that the baseline
+        # window is within the trial window (because the common averages that are passed for re-referencing cover only
+        # the trial epoch)
+        if CAR_per_condition is not None:
+
+            if trial_num_samples != CAR_per_condition.shape[1]:
+                logging.error('The number of samples for the trial epoch does not match the number of samples in the CAR matrix\n')
+                raise RuntimeError('Number of sample in CAR mismatch')
+
+            if baseline_epoch[0] < trial_epoch[0]:
+                logging.error('Invalid \'baseline_epoch\' parameter, the given baseline start-point (at ' + str(baseline_epoch[0]) + ') lies before the trial start-point (at ' + str(trial_epoch[0]) + ')\n'
+                              'When baselining is enabled and common average re-referencing needs to be applied, the baseline window should fall within the trial window\n')
+                raise ValueError('Invalid \'baseline_epoch\' parameter')
+            if baseline_epoch[1] > trial_epoch[1]:
+                logging.error('Invalid \'baseline_epoch\' parameter, the given baseline end-point (at ' + str(baseline_epoch[1]) + ') lies after the trial end-point (at ' + str(trial_epoch[1]) + ')\n'
+                'When baselining is enabled and common average re-referencing needs to be applied, the baseline window should fall within the trial window\n')
+                raise ValueError('Invalid \'baseline_epoch\' parameter')
+
+    # check if the variances should be retrieved
+    if var_epoch is not None:
+        if var_epoch[1] < var_epoch[0]:
+            logging.error('Invalid \'var_epoch\' parameter, the given end-point (at ' + str(var_epoch[1]) + ') lies before the start-point (at ' + str(var_epoch[0]) + ')')
+            raise ValueError('Invalid \'var_epoch\' parameter')
+
+        # ensure that the variance epoch is within the trial epoch
+        if var_epoch[0] < trial_epoch[0]:
+            logging.error('Invalid \'var_epoch\' parameter, the given variance start-point (at ' + str(var_epoch[0]) + ') lies before the trial start-point (at ' + str(trial_epoch[0]) + ')')
+            raise ValueError('Invalid \'var_epoch\' parameter')
+        if var_epoch[1] > trial_epoch[1]:
+            logging.error('Invalid \'var_epoch\' parameter, the given variance end-point (at ' + str(var_epoch[1]) + ') lies after the trial end-point (at ' + str(trial_epoch[1]) + ')')
+            raise ValueError('Invalid \'var_epoch\' parameter')
+
+    # prepare excludes if needed
+    exclude_epochs_starts = None
+    exclude_epochs_ends = None
+    if exclude_epochs is not None:
+        exclude_epochs_starts = np.full(len(exclude_epochs), 0, dtype=int)
+        exclude_epochs_ends = np.full(len(exclude_epochs), 0, dtype=int)
+        for exclude_epoch_index in range(len(exclude_epochs)):
+            exclude_epochs_starts[exclude_epoch_index] = int(round(exclude_epochs[exclude_epoch_index][0] * data_reader.sampling_rate))
+            exclude_epochs_ends[exclude_epoch_index] = int(round(exclude_epochs[exclude_epoch_index][1] * data_reader.sampling_rate))
+
     # loop through the conditions
     for condition_idx in range(len(conditions_onsets)):
 
-        # initialize a buffer to put all the data for this condition-channel in (trials x samples)
+        # initialize a buffer to put all the channel's epoch data for this condition in (trials x samples)
+        # and
         try:
-            condition_channel_data = allocate_array((len(conditions_onsets[condition_idx]), trial_num_samples))
+            condition_epoch_data = allocate_array((len(conditions_onsets[condition_idx]), trial_num_samples))
+            if var_epoch is not None:
+                condition_trial_variances = allocate_array(len(conditions_onsets[condition_idx]))
         except MemoryError:
-            raise MemoryError('Not enough memory create a temporary condition-channel data matrix')
+            raise MemoryError('Not enough memory to create a temporary data matrix')
+
 
         # if baseline normalization is needed and the pre-average callback function is defined, then we first
         # need to accumulate the full (i.e. channels x trials x epoch) un-normalized subset to provide to the
         # function. Therefore, we initialize an array to store the baseline values for each channel x trial, so
         # we can normalize after the callback
         baseline_data = None
-        if not baseline_method == 0 and metric_callbacks is not None:
+        if baseline_method > 0 and metric_callbacks is not None:
             try:
                 baseline_data = allocate_array((len(conditions_onsets[condition_idx]), baseline_num_samples))
             except MemoryError:
-                raise MemoryError('Not enough memory create a temporary condition-channel baseline data matrix')
+                raise MemoryError('Not enough memory to create a temporary condition-channel baseline data matrix')
 
         # loop through the trials in the condition
         for trial_idx in range(len(conditions_onsets[condition_idx])):
@@ -883,8 +952,9 @@ def __subload_data_epoch_averages__from_channel__by_condition_trials(ref_data, r
             # calculate the sample indices
             trial_sample_start = int(round((conditions_onsets[condition_idx][trial_idx] + trial_epoch[0]) * data_reader.sampling_rate))
             trial_sample_end = trial_sample_start + trial_num_samples
-            baseline_start_sample = int(round((conditions_onsets[condition_idx][trial_idx] + baseline_epoch[0]) * data_reader.sampling_rate))
-            baseline_end_sample = baseline_start_sample + baseline_num_samples
+            if baseline_method > 0:
+                baseline_start_sample = int(round((conditions_onsets[condition_idx][trial_idx] + baseline_epoch[0]) * data_reader.sampling_rate))
+                baseline_end_sample = baseline_start_sample + baseline_num_samples
             local_start = 0
             local_end = trial_num_samples
 
@@ -907,8 +977,7 @@ def __subload_data_epoch_averages__from_channel__by_condition_trials(ref_data, r
                     logging.error('Cannot extract the trial with onset ' + str(conditions_onsets[condition_idx][trial_idx]) + ', the start of the trial-epoch lies before the start of the data-set. Use a different out_of_bound_handling argument to allow out-of-bound trial epochs')
                     raise RuntimeError('Cannot extract trial')
             if trial_sample_start > channel_num_samples:
-                if (out_of_bound_method == 1 and condition_idx == len(conditions_onsets) - 1 and trial_idx == len(
-                        conditions_onsets[condition_idx]) - 1) or out_of_bound_method == 2:
+                if (out_of_bound_method == 1 and condition_idx == len(conditions_onsets) - 1 and trial_idx == len(conditions_onsets[condition_idx]) - 1) or out_of_bound_method == 2:
                     if channel_idx == 0:
                         logging.warning('Cannot extract the trial with onset ' + str(conditions_onsets[condition_idx][trial_idx]) + ', the start of the trial-epoch lies after the end of the data-set.')
                     continue
@@ -916,8 +985,7 @@ def __subload_data_epoch_averages__from_channel__by_condition_trials(ref_data, r
                     logging.error('Cannot extract the trial with onset ' + str(conditions_onsets[condition_idx][trial_idx]) + ', the start of the trial-epoch lies after the end of the data-set. Use a different out_of_bound_handling argument to allow out-of-bound trial epochs')
                     raise RuntimeError('Cannot extract trial')
             if trial_sample_end > channel_num_samples:
-                if (out_of_bound_method == 1 and condition_idx == len(conditions_onsets) - 1 and trial_idx == len(
-                        conditions_onsets[condition_idx]) - 1) or out_of_bound_method == 2:
+                if (out_of_bound_method == 1 and condition_idx == len(conditions_onsets) - 1 and trial_idx == len(conditions_onsets[condition_idx]) - 1) or out_of_bound_method == 2:
                     if channel_idx == 0:
                         logging.warning('Cannot extract the trial with onset ' + str(conditions_onsets[condition_idx][trial_idx]) + ', the end of the trial-epoch lies after the end of the data-set.')
                     local_end = trial_num_samples - (trial_sample_end - channel_num_samples)
@@ -933,23 +1001,91 @@ def __subload_data_epoch_averages__from_channel__by_condition_trials(ref_data, r
                     raise RuntimeError('Cannot extract baseline')
 
             # extract the trial data
-            # check if the channel data is passed or needs to be retrieved
             if channel_data is None:
                 # retrieve using reader
 
                 try:
-                    trial_baseline_data = data_reader.retrieve_sample_range_data(baseline_start_sample, baseline_end_sample,
-                                                                                 channels=channel_name, ensure_own_data=False)[0]
-                    trial_trial_data = data_reader.retrieve_sample_range_data(trial_sample_start, trial_sample_end,
-                                                                              channels=channel_name, ensure_own_data=False)[0]
+                    trial_trial_data = data_reader.retrieve_sample_range_data(trial_sample_start, trial_sample_end, channels=channel_name, ensure_own_data=False)[0]
+
+                    # retrieve baseline data if baselining is needed and we are not performing CAR (with CAR, the
+                    # baseline should be inside of the trial epoch, therefor we just copy it from there later)
+                    if baseline_method > 0 and CAR_per_condition is None:
+                        # TODO: if baseline is within trial_trial_data, no need to read from disk like below, instead just copy from trial_trial_data
+                        trial_baseline_data = data_reader.retrieve_sample_range_data(baseline_start_sample, baseline_end_sample, channels=channel_name, ensure_own_data=False)[0]
+
                 except (RuntimeError, LookupError):
                     raise RuntimeError('Could not load data')
 
             else:
                 # retrieve from passed channel-data
 
-                trial_baseline_data = channel_data[baseline_start_sample:baseline_end_sample]
                 trial_trial_data = channel_data[trial_sample_start:trial_sample_end]
+
+                # retrieve baseline data if baselining is needed and we are not performing CAR (with CAR, the
+                # baseline should be inside of the trial epoch, therefor we just copy it from there later)
+                if baseline_method > 0 and CAR_per_condition is None:
+                    trial_baseline_data = channel_data[baseline_start_sample:baseline_end_sample]
+
+
+            #
+            # (optionally) CAR_per_condition
+            #
+
+            if CAR_per_condition is not None:
+                trial_trial_data = np.array(trial_trial_data - CAR_per_condition[condition_idx, :])
+
+                # since the baseline window should be within the trial window, we can copy the values that are already re-referenced
+                if baseline_method > 0:
+                    trial_baseline_data = np.array(trial_trial_data[baseline_start_sample - trial_sample_start:baseline_end_sample - trial_sample_start])
+
+            #
+            # (optionally) exclude epochs
+            #
+
+            if exclude_epochs is not None:
+
+                # function to check and exclude (nan) values in a data range
+                def apply_excludes_to_range(ref_range_data, range_sample_start, range_sample_end):
+
+                    # check if trial start or end is within an exclude epoch
+                    exclude_starts_in_range = np.logical_and(exclude_epochs_starts >= range_sample_start, exclude_epochs_starts <= range_sample_end)
+                    exclude_ends_in_range = np.logical_and(exclude_epochs_ends >= range_sample_start, exclude_epochs_ends <= range_sample_end)
+                    exclude_surround_range = np.logical_and(exclude_epochs_starts < range_sample_start, exclude_epochs_ends > range_sample_end)
+                    excludes_indices = np.logical_or(np.logical_or(exclude_starts_in_range, exclude_ends_in_range), exclude_surround_range).nonzero()[0]
+
+                    # apply the exclusion epochs that were found
+                    for exclude_index in excludes_indices:
+
+                        start_nan_index = 0
+                        if exclude_starts_in_range[exclude_index]:
+                            start_nan_index = exclude_epochs_starts[exclude_index] - trial_sample_start
+
+                        end_nan_index = len(trial_trial_data)
+                        if exclude_ends_in_range[exclude_index]:
+                            end_nan_index = exclude_epochs_ends[exclude_index] - trial_sample_start
+
+                        ref_range_data[start_nan_index:end_nan_index] = np.nan
+
+                #
+                if not trial_trial_data.flags['OWNDATA']:
+                    trial_trial_data = trial_trial_data.copy()
+                apply_excludes_to_range(trial_trial_data, trial_sample_start, trial_sample_end)
+
+                if baseline_method > 0:
+                    if not trial_baseline_data.flags['OWNDATA']:
+                        trial_baseline_data = trial_baseline_data.copy()
+                    apply_excludes_to_range(trial_baseline_data, baseline_start_sample, baseline_end_sample)
+
+            # determine the variance for the trial
+            if var_epoch is not None:
+
+                var_epoch_sample_offset_start = int(round((var_epoch[0] - trial_epoch[0]) * data_reader.sampling_rate))
+                var_epoch_sample_offset_end   = int(round((var_epoch[1] - trial_epoch[0]) * data_reader.sampling_rate))
+
+                # TODO: minimum number of samples to determine var?
+                var_values = trial_trial_data[var_epoch_sample_offset_start:var_epoch_sample_offset_end]
+                if (~np.isnan(var_values)).sum() > 1:
+                    condition_trial_variances[trial_idx] = np.nanvar(var_values)
 
 
             # perform baseline normalization on the trial if needed
@@ -962,13 +1098,17 @@ def __subload_data_epoch_averages__from_channel__by_condition_trials(ref_data, r
 
                 # Note: not relevant whether this is a numpy-view or not, since we will average over the trials
                 #       later. Assume metric_callback does not manipulate the data it is given
-                condition_channel_data[trial_idx, local_start:local_end] = trial_trial_data
+                condition_epoch_data[trial_idx, local_start:local_end] = trial_trial_data
 
             if baseline_method == 1:
 
                 if metric_callbacks is None:
                     # no callback, normalize and store the trial data with baseline applied
-                    condition_channel_data[trial_idx, local_start:local_end] = trial_trial_data - np.nanmean(trial_baseline_data)
+
+                    if exclude_epochs is None or not np.isnan(trial_baseline_data).all():
+                        condition_epoch_data[trial_idx, local_start:local_end] = trial_trial_data - np.nanmean(trial_baseline_data)
+                    else:
+                        condition_epoch_data[trial_idx, local_start:local_end] = trial_trial_data
 
                 else:
                     # callback, store the baseline values for later use
@@ -980,8 +1120,11 @@ def __subload_data_epoch_averages__from_channel__by_condition_trials(ref_data, r
 
                 if metric_callbacks is None:
                     # no callback, normalize and store the trial data with baseline applied
-                    condition_channel_data[trial_idx, local_start:local_end] = trial_trial_data - np.nanmedian(trial_baseline_data)
 
+                    if exclude_epochs is None or not np.isnan(trial_baseline_data).all():
+                        condition_epoch_data[trial_idx, local_start:local_end] = trial_trial_data - np.nanmedian(trial_baseline_data)
+                    else:
+                        condition_epoch_data[trial_idx, local_start:local_end] = trial_trial_data
                 else:
                     # callback, store the baseline values for later use
                     # Note: not relevant whether this is a numpy-view or not, since we will average over the trials
@@ -994,7 +1137,7 @@ def __subload_data_epoch_averages__from_channel__by_condition_trials(ref_data, r
             if callable(metric_callbacks):
 
                 # pass the trials x epoch un-normalized subset to the callback function(s) and store the result
-                metric_value = metric_callbacks(data_reader.sampling_rate, condition_channel_data, baseline_data)
+                metric_value = metric_callbacks(data_reader.sampling_rate, condition_epoch_data, baseline_data)
                 if metric_value is not None:
                     ref_metric_values[channel_idx, condition_idx] = metric_value
 
@@ -1003,24 +1146,35 @@ def __subload_data_epoch_averages__from_channel__by_condition_trials(ref_data, r
                     if callable(metric_callbacks[iCallback]):
 
                         # pass the trials x epoch un-normalized subset to the callback function(s) and store the result
-                        metric_value = metric_callbacks[iCallback](data_reader.sampling_rate, condition_channel_data, baseline_data)
+                        metric_value = metric_callbacks[iCallback](data_reader.sampling_rate, condition_epoch_data, baseline_data)
                         if metric_value is not None:
                             ref_metric_values[channel_idx, condition_idx, iCallback] = metric_value
 
             # the callback has been made, check if (postponed) normalization should occur based on the baseline
             if baseline_method == 1:
-                condition_channel_data -= np.nanmean(baseline_data, axis=1)[:, None]
+                condition_epoch_data -= np.nan_to_num(np.nanmean(baseline_data, axis=1)[:, None])
             elif baseline_method == 2:
-                condition_channel_data -= np.nanmedian(baseline_data, axis=1)[:, None]
+                condition_epoch_data -= np.nan_to_num(np.nanmedian(baseline_data, axis=1)[:, None])
 
         # average the trials for each channel (within this condition) and store the results
-        ref_data[channel_idx, condition_idx, :] = np.nanmean(condition_channel_data, axis=0)
+        # Note: catching warning is needed to suppress unnecessary "RuntimeWarning: Mean of empty slice"
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=RuntimeWarning)
+            ref_data[channel_idx, condition_idx, :] = np.nanmean(condition_epoch_data, axis=0)
+        del condition_epoch_data
 
-        # clear reference to data
-        del condition_channel_data
+        # average the trial variances and store the results
+        # TODO: var could be calculated by taking variance over a range (var_epoch) in condition_epoch_data variable. However,
+        #       condition_epoch_data can have baselining applied, not sure if/what effect that has on the variance
+        if var_epoch is not None:
+            # Note: catching warning is needed to suppress unnecessary "RuntimeWarning: Mean of empty slice"
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", category=RuntimeWarning)
+                ref_var[channel_idx, condition_idx] = np.nanmean(condition_trial_variances)
+            del condition_trial_variances
 
     #
-    return data_reader.sampling_rate, ref_data, ref_metric_values
+    return data_reader.sampling_rate, ref_data, ref_metric_values, ref_var
 
 
 def __load_data_epoch_averages__by_channel_condition_trial(data_reader, channels,
@@ -1068,8 +1222,8 @@ def __load_data_epoch_averages__by_channel_condition_trial(data_reader, channels
         try:
             __subload_data_epoch_averages__from_channel__by_condition_trials(data, metric_values,
                                                                              data_reader, channel_idx, channels[channel_idx], None,
-                                                                             conditions_onsets, trial_num_samples, trial_epoch,
-                                                                             baseline_num_samples, baseline_method, baseline_epoch, out_of_bound_method,
+                                                                             conditions_onsets, trial_epoch,
+                                                                             baseline_method, baseline_epoch, out_of_bound_method,
                                                                              metric_callbacks)
         except (MemoryError, RuntimeError):
             raise RuntimeError('Error upon loading, epoching and averaging data')
@@ -1115,6 +1269,19 @@ def __load_data_epochs__by_channels__withPrep(average, data_reader, retrieve_cha
                                             this argument should be a 2d list or tuple that indicates the conditions, and
                                             the onsets of the trials that belong to each condition. (format: conditions x condition onsets)
     """
+
+    # if baselining and late re-ref channel selection based on variance is enabled, make sure the baseline epoch is
+    # included in the trial epoch. This way the common average (which is calculated over the trial epoch) can be applied
+    # to both the baseline epoch and the trial epoch
+    if baseline_method > 0 and late_reref.late_group_reselect_varPerc is not None:
+        if baseline_epoch[0] < trial_epoch[0]:
+            logging.error('Invalid \'baseline_epoch\' parameter, the given baseline start-point (at ' + str( baseline_epoch[0]) + ') lies before the trial start-point (at ' + str(trial_epoch[0]) + ')\n'
+                          'When baselining is enabled and common average re-referencing needs to be applied, the baseline window should fall within the trial window\n')
+            raise ValueError('Invalid \'baseline_epoch\' parameter')
+        if baseline_epoch[1] > trial_epoch[1]:
+            logging.error('Invalid \'baseline_epoch\' parameter, the given baseline end-point (at ' + str(baseline_epoch[1]) + ') lies after the trial end-point (at ' + str(trial_epoch[1]) + ')\n'
+                          'When baselining is enabled and common average re-referencing needs to be applied, the baseline window should fall within the trial window\n')
+            raise ValueError('Invalid \'baseline_epoch\' parameter')
 
     # calculate the size of the time dimension (in samples)
     trial_num_samples = int(round(abs(trial_epoch[1] - trial_epoch[0]) * data_reader.sampling_rate))
@@ -1311,6 +1478,7 @@ def __load_data_epochs__by_channels__withPrep(average, data_reader, retrieve_cha
         # loop over all the required channels
         # Note: potentially even over the ones that do not need to be retrieved but are still needed for re-referencing
         for channel in all_channels:
+            channel_idx = None
 
             # check if we need this channel, which is the case when:
             #   - it still needs to be epoch-ed
@@ -1361,11 +1529,6 @@ def __load_data_epochs__by_channels__withPrep(average, data_reader, retrieve_cha
                     # set high passing as to been applied to the channel-data in memory
                     channel_hp_applied[channel] = True
 
-                # check if variance needs to be know before early re-referencing
-                # in the situation of reref while taking into account it's variation
-                #  - if applied on early re-ref, there is no other option but load the channel before
-                #  if
-
 
                 #
                 # Early re-referencing
@@ -1408,7 +1571,7 @@ def __load_data_epochs__by_channels__withPrep(average, data_reader, retrieve_cha
                                 else:
                                     # channel has exclusion epochs
 
-                                    # create a binary numpy vector of the sample to include
+                                    # create a binary numpy vector of the samples to include
                                     channel_includes = np.ones((len(channel_data[channel]),), dtype=bool)
                                     for channel_exclude_epoch in early_reref.channel_exclude_epochs[channel]:
                                         exclude_sample_start = int(round(channel_exclude_epoch[0] * data_reader.sampling_rate))
@@ -1513,6 +1676,7 @@ def __load_data_epochs__by_channels__withPrep(average, data_reader, retrieve_cha
                     # set line noise removal to have been applied to the channel-data in memory
                     channel_lnr_applied[channel] = True
 
+
                 #
                 # Late re-referencing
                 #
@@ -1535,36 +1699,78 @@ def __load_data_epochs__by_channels__withPrep(average, data_reader, retrieve_cha
                             # check if this group requires this channel
                             if channel in late_group_channels_collected[str(group)].keys():
 
-                                # create arrays to hold the group data if not yet initialized
-                                if late_group_data[str(group)] is None:
-                                    late_group_data[str(group)] = np.zeros((len(channel_data[channel]),), dtype=np.float64)
-                                    if late_reref.channel_exclude_epochs is not None:
-                                        late_group_numdata[str(group)] = np.zeros((len(channel_data[channel]),), dtype=np.uint16)
+                                # check if the channel selection for late re-referencing is based on the variance
+                                if late_reref.late_group_reselect_varPerc is None:
+                                    # late re-referencing does not require channel selection based on variance
 
-                                # add to group data
-                                if late_reref.channel_exclude_epochs is None or channel not in late_reref.channel_exclude_epochs:
+                                    # create arrays to hold the group common average data if not yet initialized
+                                    if late_group_data[str(group)] is None:
+                                        late_group_data[str(group)] = np.zeros((len(channel_data[channel]),), dtype=np.float64)
+                                        if late_reref.channel_exclude_epochs is not None:
+                                            late_group_numdata[str(group)] = np.zeros((len(channel_data[channel]),), dtype=np.uint16)
 
-                                    # no exclusion epochs, just add the whole channel
-                                    late_group_data[str(group)] += channel_data[channel]
+                                    # check if there are exclusion epochs
+                                    if late_reref.channel_exclude_epochs is None or channel not in late_reref.channel_exclude_epochs:
 
-                                    # count the number of samples added to the total if needed
-                                    if late_reref.channel_exclude_epochs is not None:
-                                        late_group_numdata[str(group)] += 1
+                                        # no exclusion epochs, just add the whole channel
+                                        late_group_data[str(group)] += channel_data[channel]
+
+                                        # count the number of samples added to the total if needed
+                                        if late_reref.channel_exclude_epochs is not None:
+                                            late_group_numdata[str(group)] += 1
+
+                                    else:
+                                        # channel has exclusion epochs
+
+                                        # create a binary numpy vector of the sample to include
+                                        channel_includes = np.ones((len(channel_data[channel]),), dtype=bool)
+                                        for channel_exclude_epoch in late_reref.channel_exclude_epochs[channel]:
+                                            exclude_sample_start = int(round(channel_exclude_epoch[0] * data_reader.sampling_rate))
+                                            exclude_sample_end = int(round(channel_exclude_epoch[1] * data_reader.sampling_rate))
+                                            channel_includes[exclude_sample_start:exclude_sample_end] = 0
+
+                                        # add the channel (taking into account on the inclusion vector)
+                                        late_group_data[str(group)] += (channel_data[channel] * channel_includes)
+                                        late_group_numdata[str(group)] += channel_includes
+
 
                                 else:
-                                    # channel has exclusion epochs
+                                    # late re-referencing requires channel selection based on variance
+                                    # Note: the condition averages are also retrieved together with the condition variance in one go, both are
+                                    #       used later to determine to calculate common average for each condition in the reference
 
-                                    # create a binary numpy vector of the sample to include
-                                    channel_includes = np.ones((len(channel_data[channel]),), dtype=bool)
-                                    for channel_exclude_epoch in late_reref.channel_exclude_epochs[channel]:
-                                        exclude_sample_start = int(round(channel_exclude_epoch[0] * data_reader.sampling_rate))
-                                        exclude_sample_end = int(round(channel_exclude_epoch[1] * data_reader.sampling_rate))
-                                        channel_includes[exclude_sample_start:exclude_sample_end] = 0
+                                    #
+                                    if channel_idx is None:
+                                        try:
+                                            channel_idx = retrieve_channels.index(channel)
+                                        except ValueError:
+                                            logging.error('Could not find epoch channel ' + channel + ' in the list of channels to retrieve')
+                                            raise RuntimeError('Could not find late ref channel in retrieve list')
 
-                                    # add the channel (taking into account on the inclusion vector)
-                                    late_group_data[str(group)] += (channel_data[channel] * channel_includes)
-                                    late_group_numdata[str(group)] += channel_includes
-                                    pass
+                                    # check if there are exclusion epochs
+                                    channel_exclude_epochs = None
+                                    if late_reref.channel_exclude_epochs is not None and channel in late_reref.channel_exclude_epochs:
+                                        channel_exclude_epochs = late_reref.channel_exclude_epochs[channel]
+
+                                    # create arrays to hold the group variances data if not yet initialized
+                                    if late_group_data[str(group)] is None:
+
+                                        # TODO: maybe improve
+                                        # Note: deliberately make this array larger so that the index of the channels in the 'data' variable and the 'late_group_data[str(group)]' variable can match
+                                        late_group_data[str(group)] = allocate_array((len(retrieve_channels), len(onsets)))
+                                        #late_group_data[str(group)] = allocate_array((len(late_reref.groups[group]), len(onsets)))
+
+
+                                    # Note 1: 'data' will hold the averages to be used to the common averages per channel per condition later, after the
+                                    #         common averages are determined, the values in data will be cleared/overwritten with the actual output data
+                                    __subload_data_epoch_averages__from_channel__by_condition_trials(data, None,
+                                                                                                     data_reader, channel_idx, channel, channel_data[channel],
+                                                                                                     onsets, trial_epoch,
+                                                                                                     0, None,
+                                                                                                     out_of_bound_method,
+                                                                                                     metric_callbacks=None,
+                                                                                                     exclude_epochs=channel_exclude_epochs,
+                                                                                                     var_epoch=(.015, .5), ref_var=late_group_data[str(group)])
 
                                 # flag channel within the group as collected
                                 late_group_channels_collected[str(group)][channel] = True
@@ -1572,16 +1778,68 @@ def __load_data_epochs__by_channels__withPrep(average, data_reader, retrieve_cha
                                 # check whether all the channels in the group are collected
                                 if all(late_group_channels_collected[str(group)].values()):
 
-                                    # take the average over the total
-                                    # (if specific epochs were excluded, each sample should be divided by its own number)
-                                    if late_reref.channel_exclude_epochs is not None:
-                                        late_group_data[str(group)] /= late_group_numdata[str(group)]
+                                    # check if the channel selection for late re-referencing is based on the variance
+                                    if late_reref.late_group_reselect_varPerc is None:
+                                        # late re-referencing does not require channel selection based on variance
 
-                                        # clear the array was used divide the total to
-                                        del late_group_numdata[str(group)]
+                                        # take the average over the total
+                                        # (if specific epochs were excluded, each sample should be divided by its own number)
+                                        if late_reref.channel_exclude_epochs is not None:
+                                            late_group_data[str(group)] /= late_group_numdata[str(group)]
+
+                                            # clear the array was used divide the total to
+                                            del late_group_numdata[str(group)]
+
+                                        else:
+                                            late_group_data[str(group)] /= len(late_group_channels_collected[str(group)])
 
                                     else:
-                                        late_group_data[str(group)] /= len(late_group_channels_collected[str(group)])
+                                        # late re-referencing requires channel selection based on variance
+
+                                        # check minimum number of channels with variances within the re-referencing group
+                                        # TODO: now set to 5, discuss a default and put in config
+                                        variance_channels_per_condition = np.sum(~np.isnan(late_group_data[str(group)]), axis=0)
+                                        if np.any(variance_channels_per_condition < 5):
+                                            logging.error('One or more stim-pairs/conditions have too few channel variances within the current late re-referencing group ' + str(group) + ' to perform channel selection by variance.\n'
+                                                          'If re-referencing with CAR per headbox, consider using just CAR.\n')
+                                            raise RuntimeError('Too few channel variances to perform channel selection')
+
+                                        # determine the variance threshold (below which to include channels) per condition
+                                        variance_threshold_per_condition = np.nanquantile(late_group_data[str(group)], late_reref.late_group_reselect_varPerc, axis=0)
+
+                                        # create a matrix to hold the trial epoch common average for each condition
+                                        group_CAR_per_condition = allocate_array((len(onsets), trial_num_samples))
+
+                                        # loop over the conditions
+                                        for condition_index in range(late_group_data[str(group)].shape[1]):
+
+                                            # TODO: optionally mention condition name (stim-pairs)
+                                            logging.info('Re-referencing group: ' + str(group) + ' - Condition index: ' + str(condition_index))
+                                            logging.info('    - Quantile threshold: ' + str(variance_threshold_per_condition[condition_index]) + '  (at quantile: ' + str(late_reref.late_group_reselect_varPerc) + ')')
+
+                                            # retrieve the indices of the channels that should be used for re-referencing based on the threshold for this condition
+                                            lowest_var_channels = (late_group_data[str(group)][:, condition_index] < variance_threshold_per_condition[condition_index]).nonzero()[0]
+
+                                            # output channels with variances
+                                            var_channels_print = [retrieve_channels[var_channel] + ' (' + str(round(late_group_data[str(group)][var_channel, condition_index], 1)) + ')' for var_channel in lowest_var_channels]
+                                            var_channels_print = [str_print.ljust(len(max(var_channels_print, key=len)), ' ') for str_print in var_channels_print]
+                                            logging.info(multi_line_list(var_channels_print, LOGGING_CAPTION_INDENT_LENGTH, '    - Channels: ', 5, '   ', str(len(var_channels_print)) + ' of ' + str(len(late_reref.groups[group]))))
+
+                                            # check minimum number of channels within the condition
+                                            # TODO: now set to 5, discuss a default and put in config
+                                            if len(lowest_var_channels) < 5:
+                                                logging.error('Too few channels (' + str(len(lowest_var_channels))  + ' from a group of ' + str(len(late_reref.groups[group])) + ') left for re-referencing after applying the variance threshold (' + str(variance_threshold_per_condition[condition_index]) + ') for this stim-pair/condition.\n'
+                                                              'If re-referencing with CAR per headbox, consider using just CAR.\n')
+                                                raise RuntimeError('Too few channel after variance thresholding to perform channel selection')
+
+                                            # calculate condition common average
+                                            group_CAR_per_condition[condition_index, :] = np.nanmean(data[lowest_var_channels, condition_index, :], axis=0)
+
+
+                                        # clear variance data and instead store the group common averages (per condition) there
+                                        del late_group_data[str(group)]
+                                        late_group_data[str(group)] = group_CAR_per_condition
+
 
                         # flag that for this channel the late re-ref values have been collected
                         channel_late_reref_collected[channel] = True
@@ -1602,6 +1860,7 @@ def __load_data_epochs__by_channels__withPrep(average, data_reader, retrieve_cha
                             continue
 
 
+
                     #
                     # Late re-referencing apply
                     #
@@ -1618,14 +1877,15 @@ def __load_data_epochs__by_channels__withPrep(average, data_reader, retrieve_cha
                     # check if all the late re-referencing information is available yet (late average for this group)
                     if all(late_group_channels_collected[str(group)].values()):
                         # all required information is available, perform late re-referencing on the channel
+                        # print(channel + ": performing late reref on channel")
 
-                        #print(channel + ": performing late reref on channel")
+                        if late_reref.late_group_reselect_varPerc is None:
+                            # late re-referencing does not require channel selection based on variance
 
-                        # perform late re-ref using reref_values
-                        channel_data[channel] -= late_group_data[str(group)]
+                            # perform late re-ref using reref_values
+                            channel_data[channel] -= late_group_data[str(group)]
 
-                        # TODO: if this is the latest channel to use the late group average, see if we can safely clear the group average array
-
+                            # TODO: if this is the latest channel to use the late group average, see if we can safely clear the group average array
 
                     else:
                         # not all required information for late re-ref is available, we will have to wait
@@ -1649,6 +1909,7 @@ def __load_data_epochs__by_channels__withPrep(average, data_reader, retrieve_cha
                         # continue to the next channel
                         continue
 
+
                 #
                 # Epoch-ing
                 #
@@ -1660,31 +1921,45 @@ def __load_data_epochs__by_channels__withPrep(average, data_reader, retrieve_cha
                     # retrieve the index of the channel in the requested list (so it can be placed in the correct spot of the return matrix)
                     # Note: Channels that are needed for re-referencing but not for epoch-ing should not get this far due
                     #       to the check/continue statements in the re-referencing collects sections above
-                    try:
-                        channel_idx = retrieve_channels.index(channel)
-                    except ValueError:
-                        logging.error('Could not find epoch channel ' + channel + ' in the list of channels to retrieve')
-                        raise RuntimeError('Could not find epoch channel in retrieve list')
+                    if channel_idx is None:
+                        try:
+                            channel_idx = retrieve_channels.index(channel)
+                        except ValueError:
+                            logging.error('Could not find epoch channel ' + channel + ' in the list of channels to retrieve')
+                            raise RuntimeError('Could not find epoch channel in retrieve list')
+
+                    # check if late re-referencing with based on variance is needed
+                    CAR_per_condition = None
+                    if late_reref is not None and late_reref.late_group_reselect_varPerc is not None:
+
+                        # retrieve the late re-ref group for this channel
+                        group = late_reref.channel_group[channel]
+
+                        # clear the data for this channel
+                        data[channel_idx, :, :] = np.nan
+
+                        #
+                        CAR_per_condition = late_group_data[str(group)]
+
 
                     if average:
                         # epoch and average
 
                         __subload_data_epoch_averages__from_channel__by_condition_trials(data, metric_values,
                                                                                          data_reader, channel_idx, channel, channel_data[channel],
-                                                                                         onsets, trial_num_samples, trial_epoch,
-                                                                                         baseline_num_samples, baseline_method, baseline_epoch,
+                                                                                         onsets, trial_epoch,
+                                                                                         baseline_method, baseline_epoch,
                                                                                          out_of_bound_method,
-                                                                                         metric_callbacks)
+                                                                                         metric_callbacks,
+                                                                                         CAR_per_condition=CAR_per_condition)
 
                     else:
                         # epoch only
                         __epoch_data__from_channel_data__by_trials(data,
                                                                    channel_idx, channel_data[channel],
                                                                    data_reader.sampling_rate,
-                                                                   onsets, trial_num_samples, trial_epoch,
-                                                                   baseline_num_samples, baseline_method,
-                                                                   baseline_epoch,
-                                                                   out_of_bound_method)
+                                                                   onsets, trial_epoch,
+                                                                   baseline_method, baseline_epoch, out_of_bound_method)
 
                 except (MemoryError, RuntimeError):
                     raise RuntimeError('Error upon loading and epoching data')
@@ -1708,152 +1983,3 @@ def __load_data_epochs__by_channels__withPrep(average, data_reader, retrieve_cha
     else:
         return data_reader.sampling_rate, data
 
-
-
-
-"""
-def __load_data_epochs__by_channels__withPrep_earlyEpoch(average, data_reader, retrieve_channels, onsets,
-                                                         trial_epoch, baseline_method, baseline_epoch,
-                                                         out_of_bound_method, metric_callbacks,
-                                                         high_pass, early_reref, line_noise_removal, late_reref, priority):
-
-    # calculate the size of the time dimension (in samples)
-    trial_num_samples = int(round(abs(trial_epoch[1] - trial_epoch[0]) * data_reader.sampling_rate))
-    baseline_num_samples = int(round(abs(baseline_epoch[1] - baseline_epoch[0]) * data_reader.sampling_rate))
-
-    # initialize a data buffer (channel x trials/epochs x time)
-    try:
-        data = allocate_array((len(retrieve_channels), len(onsets), trial_num_samples))
-    except MemoryError:
-        raise MemoryError('Not enough memory create a data output matrix')
-
-    # initialize a metric buffer (channel x conditions x metric)
-    if average:
-        try:
-            metric_values = None
-            if metric_callbacks is not None:
-                if callable(metric_callbacks):
-                    metric_values = allocate_array((len(retrieve_channels), len(onsets)))
-                elif type(metric_callbacks) is tuple and len(metric_callbacks) > 0:
-                    metric_values = allocate_array((len(retrieve_channels), len(onsets), len(metric_callbacks)))
-        except MemoryError:
-            raise MemoryError('Not enough memory create a metric output matrix')
-
-    # create a list of all channels that we need, most with the purpose of reading and returning (e.g. only ECoG) but some only to be used for re-referencing (e.g. both ECoG and SEEG)
-    all_channels = retrieve_channels.copy()
-    try:
-        if early_reref is not None:
-            early_req_channels = early_reref.get_required_channels(retrieve_channels)
-            early_req_groups = early_reref.get_required_groups(retrieve_channels)
-            for channel in early_req_channels:
-                if channel not in all_channels:
-                    all_channels.append(channel)
-        if late_reref is not None:
-            late_req_channels = late_reref.get_required_channels(retrieve_channels)
-            late_req_groups = late_reref.get_required_groups(retrieve_channels)
-            for channel in late_req_channels:
-                if channel not in all_channels:
-                    all_channels.append(channel)
-    except ValueError:
-        logging.error('Could not find a channel that is to be used for early or late re-referencing in the reref struct')
-        raise ValueError('Could not find a channel that is to retrieved in the reref struct')
-
-
-    #
-    # Initialize variable that track processing
-    #
-
-    channel_epoch_processed = dict()                        # tracks for each channel whether it has been epoched (fully processed)
-    for channel in retrieve_channels:
-        channel_epoch_processed[channel] = [False] * len(onsets)
-
-    if early_reref is not None:
-        #channel_early_reref_collected = dict()          # tracks for each channel if the channel-data is added to the early re-ref group averages
-        #for channel in early_req_channels:
-        #    channel_early_reref_collected[channel] = False
-
-        early_group_data = dict()                       # for each early re-ref group stores the (total/average) data
-        early_group_numdata = dict()                    # for each early re-ref group stores the num of samples for each datapoint in the (total) data
-        early_group_channels_collected = dict()         # tracks for each early re-ref group all the channels that need to be collected
-        for group in early_req_groups:
-            early_group_data[str(group)] = None
-            early_group_numdata[str(group)] = None
-            early_group_channels_collected[str(group)] = dict()
-            for channel in early_reref.groups[group]:
-                early_group_channels_collected[str(group)][channel] = False
-
-    if late_reref is not None:
-        #channel_late_reref_collected = dict()          # tracks for each channel if the channel-data is added to the late re-ref group averages
-        #for channel in late_req_channels:
-        #    channel_late_reref_collected[channel] = False
-
-        late_group_data = dict()                        # for each late re-ref group stores the (total/average) data
-        late_group_numdata = dict()                     # for each late re-ref group stores the num of samples for each datapoint in the (total) data
-        late_group_channels_collected = dict()          # tracks for each late re-ref group all the channels that need to be collected
-        for group in late_req_groups:
-            late_group_data[str(group)] = None
-            late_group_numdata[str(group)] = None
-            late_group_channels_collected[str(group)] = dict()
-            for channel in late_reref.groups[group]:
-                late_group_channels_collected[str(group)][channel] = False
-
-    channel_data = dict()
-    channel_hp_applied = dict()              # tracks for each channel in the channel-data matrix if high-pass filtering is applied
-    #channel_early_applied = dict()           # tracks for each channel in the channel-data matrix if early re-ref is applied
-    channel_lnr_applied = dict()             # tracks for each channel in the channel-data matrix if line-noise removal is applied
-    for channel in all_channels:
-        channel_data[channel] = None
-        channel_hp_applied[channel] = False
-        #channel_early_applied[channel] = False
-        channel_lnr_applied[channel] = False
-
-
-    #
-    # Prepare filters
-    #
-
-    if high_pass is not None:
-
-        order = 2
-        fs = data_reader.sampling_rate
-        pass_freq = 0.50     # Hz <<<<
-        stop_freq = 0.05     # Hz
-        pass_ripple = 3      # dB
-        stop_atten = 30      # dB
-
-        # TODO: matlab also allows passing of stopband (buttord), however getting the same values out of python buttord is difficult
-        #       settling for standard python ways for now (direct use of butter)
-
-        # normalize the high-pass cut-off frequency using the nyquist frequency (srate / 2)
-        cut_freq = pass_freq / (data_reader.sampling_rate / 2)
-
-        # design a butterworth filter and get the filter coefficients (numerator / denominator (‘ba’)
-        hp_numerator, hp_denominator = signal.butter(order, cut_freq, btype='highpass', analog=False, output='ba', fs=fs)
-        # TODO: the 'ba' or 'sos' returned by butter differ from what matlab gives
-
-        #sos = signal.butter(order, normal_cutoff, btype='highpass', analog=False, output='sos', fs=fs)
-        #sos2 = [[1, -2, 1, 1, -1.998780375302085, 0.998781118591159]]  # taken from matlab
-        #print(sos)
-
-
-    if line_noise_removal is not None:
-
-        # design a notch filter and get the filter coefficients (numerator / denominator (‘ba’)
-        lnr_numerator, lnr_denominator = signal.iirnotch(line_noise_removal, 30.0, data_reader.sampling_rate)
-
-
-
-    #
-    # Process
-    #
-
-    # until all channels are epoch-ed (fully processed)
-    # should become until all channels/epochs are fully processed?
-    while not all(channel_epoched.values()):
-
-        # loop over all the required channels
-        # Note: potentially even over the ones that do not need to be retrieved but are still needed for re-referencing
-        for channel in all_channels:
-
-            pass
-"""
