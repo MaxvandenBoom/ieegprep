@@ -115,10 +115,11 @@ def load_data_epochs(data_path, retrieve_channels, onsets,
             # no preprocessing required
 
             if data_reader.data_format in ('bv', 'edf'):
-                # EDF or BrainVision format, use MNE to read
+                # EDF or BrainVision format
+                # TODO: test speeds and depend on preload (not on datatype)
 
-                # load the data by iterating over the channels and picking out the epochs, for EDF and BrainVision this is
-                # a reasonable options since MNE already loads the entire dataset in memory
+                # load the data by iterating over the channels and picking out the epochs, for entire preloaded datasets
+                # this is a reasonable options since the data is already in memory
 
                 sampling_rate, data = __load_data_epochs__by_channels( data_reader, retrieve_channels, onsets,
                                                                        trial_epoch=trial_epoch,
@@ -127,8 +128,9 @@ def load_data_epochs(data_path, retrieve_channels, onsets,
 
             elif data_reader.data_format == 'mef3':
                 # MEF3 format
+                # TODO: test speeds and depend on preload (not on datatype)
 
-                # load the data by iterating over the trials, for MEF3 this is the most memory efficient (and likely fastest)
+                # load the data by iterating over the trials, for non-preloaded data this is the most memory efficient (and likely fastest)
                 sampling_rate, data = __load_data_epochs__by_trial(data_reader, retrieve_channels, onsets,
                                                                    trial_epoch=trial_epoch,
                                                                    baseline_method=baseline_method, baseline_epoch=baseline_epoch,
@@ -263,13 +265,13 @@ def load_data_epochs_averages(data_path, retrieve_channels, conditions_onsets,
             # no preprocessing required
 
             if data_reader.data_format in ('bv', 'edf'):
-                # EDF or BrainVision format, use MNE to read
+                # EDF or BrainVision format
+                # TODO: test speeds and depend on preload (not on datatype)
 
                 # Load data epoch averages by first iterating over conditions, then over the channels and then retrieve
                 # and average (metric) over the epoch-trials within the channel-condition combination
                 #
-                # Note:     This method is good for EDF and BrainVision because MNE already loads the entire set in
-                #           memory. So there is no minimum of loading of data possible.
+                # Note:     This method is good if the entire dataset is preloaded in memory. So there is no minimum of loading of data possible.
                 sampling_rate, data, metric_values = __load_data_epoch_averages__by_channel_condition_trial(data_reader, retrieve_channels, conditions_onsets,
                                                                                                             trial_epoch=trial_epoch,
                                                                                                             baseline_method=baseline_method, baseline_epoch=baseline_epoch,
@@ -277,12 +279,12 @@ def load_data_epochs_averages(data_path, retrieve_channels, conditions_onsets,
 
             elif data_reader.data_format == 'mef3':
                 # MEF3 format
+                # TODO: test speeds and depend on preload (not on datatype)
 
                 # load the data by first iterating over conditions, second over trials within that condition and then
                 # retrieve the epoch-data for all channels and take average (and metric) for each channel.
                 #
                 # For MEF3 this is the fastest solution while using a small amount of memory (because only the required data is loaded)
-                #
                 sampling_rate, data, metric_values = __load_data_epoch_averages__by_condition_trial(data_reader, retrieve_channels, conditions_onsets,
                                                                                                     trial_epoch=trial_epoch,
                                                                                                     baseline_method=baseline_method, baseline_epoch=baseline_epoch,
@@ -463,9 +465,10 @@ def __load_data_epochs__by_channels(data_reader, retrieve_channels,
     and retrieving the trial-epochs
 
     Note:   Since this method retrieves the data of a single channel before extracting the epochs, it is reasonably memory
-            efficient. It is well suited for EFD or BrainVision since MNE loads the entire set in memory anyway. However,
-            when the MEF3 format is used, epoching can be performed even more memory efficient using
+            efficient. It is well suited when the entire dataset is pre-loaded in memory anyway. However,
+            when the entire set is not in memory, epoching can be performed even more memory efficient using
             the '__load_data_epochs__by_trial' method (which should be equally fast or even faster)
+            # TODO: test speeds
 
     Args:
         data_reader (IeegDataReader):       An instance of the IeegDataReader to retrieve metadata and channel data
@@ -513,10 +516,10 @@ def __load_data_epochs__by_trial(data_reader, retrieve_channels,
     Load data epochs to a matrix (format: channel x trials/epochs x time) by looping over and loading data per
     trial (for all channels) and retrieving the trial data by iterating over each of the channels
 
-    Note:   Especially for the MEF3 format this is the most memory efficient because only the minimum amount of data
-            is loaded into memory, which should also be faster because less data is read from the disk. For EDF and
-            Brainvision there no benefit, since these formats are loaded with MNE, which load the entire dataset into
-            memory first.
+    Note:   Especially when the entire set is not held in memory this is the most memory efficient because only the
+            minimum amount of data is loaded into memory, which could also be faster because less data is read from the disk.
+            When the entire dataset is first loaded in memory then there no benefit
+            # TODO: test speeds
 
     Args:
         data_reader (IeegDataReader):       An instance of the IeegDataReader to retrieve metadata and channel data
@@ -637,10 +640,11 @@ def __load_data_epoch_averages__by_condition_trial(data_reader, retrieve_channel
     the trials within a condition and then load the data per condition-trial (for all channels) and perform
     averaging (and metric calculation) by iterating over each of the channels
 
-    Note:   For MEF3 this is the fastest solution while using a small amount of memory (because only the required data
-            is loaded). The '__load_data_epoch_averages__by_channel_condition_trial' is even more memory
-            efficient but slower for MEF3. For EDF and BrainVision there is not much difference because MNE preloads the
-            whole set to memory first, so just numpy-views are returned and used.
+    Note:   When the entire dataset is not preloaded this is the fastest solution while using a small amount of
+            memory (because only the required data is loaded). The '__load_data_epoch_averages__by_channel_condition_trial' is
+            even more memory efficient but slower for MEF3. For preloaded data there is not much difference because the
+            whole set is load to memory first, so just numpy-views are returned and used.
+            # TODO: test speeds
     Note2:  only an option when at no point the full channel data is needed (e.g. cannot be used when high-pass filtering is required)
     """
 
@@ -1187,8 +1191,9 @@ def __load_data_epoch_averages__by_channel_condition_trial(data_reader, channels
     channel loop
 
     Note:     This function is even more memory efficient than '__load_data_epoch_averages__by_condition_trial', but
-              slower for MEF3. For EDF and BrainVision there is not much difference because MNE preloads the
-              whole set to memory first, so just numpy-views are returned and used.
+              slower when the entire dataset is not pre-loaded. For pre-loaded datasets there is not much difference because
+              the whole set is loaded to memory first, so just numpy-views are returned and used.
+              # TODO: retest speeds
     """
 
     # calculate the size of the time dimension (in samples)
@@ -1250,9 +1255,9 @@ def __load_data_epochs__by_channels__withPrep(average, data_reader, retrieve_cha
     throughout the processing, allowing for more speed but also requiring more memory.
 
 
-    Note:   Note that for preprocessing the EDF or BrainVision format already load the entire set in memory. Preprocessing
-            will require a copy of the channel data for manipulation, so there is no memory benefit in the fact that
-            MNE already loads the entire dataset into memory.
+    Note:   Note that for preloaded datasets, preprocessing will require a copy of the channel data for manipulation, so
+            there is no memory benefit in the fact that the entire dataset is loaded into memory first.
+            # TODO: retest speeds
 
     Args:
         average (boolean):                  Whether, after preprocessing, only epochs (False) should be extracted and
@@ -1797,7 +1802,7 @@ def __load_data_epochs__by_channels__withPrep(average, data_reader, retrieve_cha
                                         # late re-referencing requires channel selection based on variance
 
                                         # check minimum number of channels with variances within the re-referencing group
-                                        # TODO: now set to 5, discuss a default and put in config
+                                        # TODO: now set to 5, discuss a default and put in config. Perhaps as warning?
                                         variance_channels_per_condition = np.sum(~np.isnan(late_group_data[str(group)]), axis=0)
                                         if np.any(variance_channels_per_condition < 5):
                                             logging.error('One or more stim-pairs/conditions have too few channel variances within the current late re-referencing group ' + str(group) + ' to perform channel selection by variance.\n'
@@ -1815,7 +1820,7 @@ def __load_data_epochs__by_channels__withPrep(average, data_reader, retrieve_cha
 
                                             # TODO: optionally mention condition name (stim-pairs)
                                             logging.info('Re-referencing group: ' + str(group) + ' - Condition index: ' + str(condition_index))
-                                            logging.info('    - Quantile threshold: ' + str(variance_threshold_per_condition[condition_index]) + '  (at quantile: ' + str(late_reref.late_group_reselect_varPerc) + ')')
+                                            logging.info('    - R2 threshold: ' + str(round(variance_threshold_per_condition[condition_index], 1)) + '  (at quantile: ' + str(late_reref.late_group_reselect_varPerc) + ')')
 
                                             # retrieve the indices of the channels that should be used for re-referencing based on the threshold for this condition
                                             lowest_var_channels = (late_group_data[str(group)][:, condition_index] < variance_threshold_per_condition[condition_index]).nonzero()[0]
