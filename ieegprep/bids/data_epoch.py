@@ -1278,7 +1278,7 @@ def __load_data_epochs__by_channels__withPrep(average, data_reader, retrieve_cha
     # if baselining and late re-ref channel selection based on variance is enabled, make sure the baseline epoch is
     # included in the trial epoch. This way the common average (which is calculated over the trial epoch) can be applied
     # to both the baseline epoch and the trial epoch
-    if baseline_method > 0 and late_reref.late_group_reselect_varPerc is not None:
+    if baseline_method > 0 and late_reref is not None and late_reref.late_group_reselect_varPerc is not None:
         if baseline_epoch[0] < trial_epoch[0]:
             logging.error('Invalid \'baseline_epoch\' parameter, the given baseline start-point (at ' + str( baseline_epoch[0]) + ') lies before the trial start-point (at ' + str(trial_epoch[0]) + ')\n'
                           'When baselining is enabled and common average re-referencing needs to be applied, the baseline window should fall within the trial window\n')
