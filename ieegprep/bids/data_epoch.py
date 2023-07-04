@@ -85,9 +85,9 @@ def load_data_epochs(data_path, retrieve_channels, onsets,
     # check input
     #
     try:
-        data_reader, baseline_method, out_of_bound_method = __prepare_input(data_path,
-                                                                            trial_epoch, baseline_norm, baseline_epoch,
-                                                                            out_of_bound_handling,
+        data_reader, baseline_method, out_of_bound_method = _prepare_input(data_path,
+                                                                           trial_epoch, baseline_norm, baseline_epoch,
+                                                                           out_of_bound_handling,
                                                                            preload_data=preload_data)
         # TODO: check preprocessing input
 
@@ -106,15 +106,15 @@ def load_data_epochs(data_path, retrieve_channels, onsets,
 
             # Load data epoch averages by iterating over the channels
             # Note:   with preprocessing per channel manipulations are needed before epoch-ing (,metric calculation) and averaging
-            sampling_rate, data = __load_data_epochs__by_channels__withPrep(False, data_reader, retrieve_channels, onsets,
-                                                                            trial_epoch=trial_epoch,
-                                                                            baseline_method=baseline_method, baseline_epoch=baseline_epoch,
-                                                                            out_of_bound_method=out_of_bound_method,
-                                                                            metric_callbacks=None,
-                                                                            high_pass=high_pass, early_reref=early_reref,
-                                                                            line_noise_removal=line_noise_removal,
-                                                                            late_reref=late_reref,
-                                                                            priority=preproc_priority)
+            sampling_rate, data = _load_data_epochs__by_channels__withPrep(False, data_reader, retrieve_channels, onsets,
+                                                                           trial_epoch=trial_epoch,
+                                                                           baseline_method=baseline_method, baseline_epoch=baseline_epoch,
+                                                                           out_of_bound_method=out_of_bound_method,
+                                                                           metric_callbacks=None,
+                                                                           high_pass=high_pass, early_reref=early_reref,
+                                                                           line_noise_removal=line_noise_removal,
+                                                                           late_reref=late_reref,
+                                                                           priority=preproc_priority)
 
         else:
             # no preprocessing required
@@ -126,20 +126,20 @@ def load_data_epochs(data_path, retrieve_channels, onsets,
                 # load the data by iterating over the channels and picking out the epochs, for entire preloaded datasets
                 # this is a reasonable options since the data is already in memory
 
-                sampling_rate, data = __load_data_epochs__by_channels( data_reader, retrieve_channels, onsets,
-                                                                       trial_epoch=trial_epoch,
-                                                                       baseline_method=baseline_method, baseline_epoch=baseline_epoch,
-                                                                       out_of_bound_method=out_of_bound_method)
+                sampling_rate, data = _load_data_epochs__by_channels( data_reader, retrieve_channels, onsets,
+                                                                      trial_epoch=trial_epoch,
+                                                                      baseline_method=baseline_method, baseline_epoch=baseline_epoch,
+                                                                      out_of_bound_method=out_of_bound_method)
 
             elif data_reader.data_format == 'mef3':
                 # MEF3 format
                 # TODO: test speeds and depend on preload (not on datatype)
 
                 # load the data by iterating over the trials, for non-preloaded data this is the most memory efficient (and likely fastest)
-                sampling_rate, data = __load_data_epochs__by_trial(data_reader, retrieve_channels, onsets,
-                                                                   trial_epoch=trial_epoch,
-                                                                   baseline_method=baseline_method, baseline_epoch=baseline_epoch,
-                                                                   out_of_bound_method=out_of_bound_method)
+                sampling_rate, data = _load_data_epochs__by_trial(data_reader, retrieve_channels, onsets,
+                                                                  trial_epoch=trial_epoch,
+                                                                  baseline_method=baseline_method, baseline_epoch=baseline_epoch,
+                                                                  out_of_bound_method=out_of_bound_method)
 
     except Exception as e:
         logging.error('Error on loading and epoching data: ' + str(e))
@@ -237,9 +237,9 @@ def load_data_epochs_averages(data_path, retrieve_channels, conditions_onsets,
     # check input
     #
     try:
-        data_reader, baseline_method, out_of_bound_method = __prepare_input(data_path,
-                                                                            trial_epoch, baseline_norm, baseline_epoch,
-                                                                            out_of_bound_handling, preload_data=preload_data)
+        data_reader, baseline_method, out_of_bound_method = _prepare_input(data_path,
+                                                                           trial_epoch, baseline_norm, baseline_epoch,
+                                                                           out_of_bound_handling, preload_data=preload_data)
         # TODO: check preprocessing input
 
     except Exception as e:
@@ -258,15 +258,15 @@ def load_data_epochs_averages(data_path, retrieve_channels, conditions_onsets,
 
             # Load data epoch averages by iterating over the channels
             # Note:   with preprocessing per channel manipulations are needed before epoch-ing (,metric calculation) and averaging
-            sampling_rate, data, metric_values = __load_data_epochs__by_channels__withPrep(True, data_reader, retrieve_channels, conditions_onsets,
-                                                                                           trial_epoch=trial_epoch,
-                                                                                           baseline_method=baseline_method, baseline_epoch=baseline_epoch,
-                                                                                           out_of_bound_method=out_of_bound_method,
-                                                                                           metric_callbacks=metric_callbacks,
-                                                                                           high_pass=high_pass, early_reref=early_reref,
-                                                                                           line_noise_removal=line_noise_removal,
-                                                                                           late_reref=late_reref,
-                                                                                           priority=preproc_priority)
+            sampling_rate, data, metric_values = _load_data_epochs__by_channels__withPrep(True, data_reader, retrieve_channels, conditions_onsets,
+                                                                                          trial_epoch=trial_epoch,
+                                                                                          baseline_method=baseline_method, baseline_epoch=baseline_epoch,
+                                                                                          out_of_bound_method=out_of_bound_method,
+                                                                                          metric_callbacks=metric_callbacks,
+                                                                                          high_pass=high_pass, early_reref=early_reref,
+                                                                                          line_noise_removal=line_noise_removal,
+                                                                                          late_reref=late_reref,
+                                                                                          priority=preproc_priority)
 
         else:
             # no preprocessing required
@@ -279,10 +279,10 @@ def load_data_epochs_averages(data_path, retrieve_channels, conditions_onsets,
                 # and average (metric) over the epoch-trials within the channel-condition combination
                 #
                 # Note:     This method is good if the entire dataset is preloaded in memory. So there is no minimum of loading of data possible.
-                sampling_rate, data, metric_values = __load_data_epoch_averages__by_channel_condition_trial(data_reader, retrieve_channels, conditions_onsets,
-                                                                                                            trial_epoch=trial_epoch,
-                                                                                                            baseline_method=baseline_method, baseline_epoch=baseline_epoch,
-                                                                                                            out_of_bound_method=out_of_bound_method, metric_callbacks=metric_callbacks)
+                sampling_rate, data, metric_values = _load_data_epoch_averages__by_channel_condition_trial(data_reader, retrieve_channels, conditions_onsets,
+                                                                                                           trial_epoch=trial_epoch,
+                                                                                                           baseline_method=baseline_method, baseline_epoch=baseline_epoch,
+                                                                                                           out_of_bound_method=out_of_bound_method, metric_callbacks=metric_callbacks)
 
             elif data_reader.data_format == 'mef3':
                 # MEF3 format
@@ -292,10 +292,10 @@ def load_data_epochs_averages(data_path, retrieve_channels, conditions_onsets,
                 # retrieve the epoch-data for all channels and take average (and metric) for each channel.
                 #
                 # For MEF3 this is the fastest solution while using a small amount of memory (because only the required data is loaded)
-                sampling_rate, data, metric_values = __load_data_epoch_averages__by_condition_trial(data_reader, retrieve_channels, conditions_onsets,
-                                                                                                    trial_epoch=trial_epoch,
-                                                                                                    baseline_method=baseline_method, baseline_epoch=baseline_epoch,
-                                                                                                    out_of_bound_method=out_of_bound_method, metric_callbacks=metric_callbacks)
+                sampling_rate, data, metric_values = _load_data_epoch_averages__by_condition_trial(data_reader, retrieve_channels, conditions_onsets,
+                                                                                                   trial_epoch=trial_epoch,
+                                                                                                   baseline_method=baseline_method, baseline_epoch=baseline_epoch,
+                                                                                                   out_of_bound_method=out_of_bound_method, metric_callbacks=metric_callbacks)
 
     except Exception as e:
         logging.error('Error on loading, epoching and averaging data: ' + str(e))
@@ -312,7 +312,7 @@ def load_data_epochs_averages(data_path, retrieve_channels, conditions_onsets,
 # private functions
 #
 
-def __prepare_input(data_path, trial_epoch, baseline_norm, baseline_epoch, out_of_bound_handling, preload_data=False):
+def _prepare_input(data_path, trial_epoch, baseline_norm, baseline_epoch, out_of_bound_handling, preload_data=False):
     """
     Check and prepare the input for loading data
 
@@ -479,9 +479,9 @@ def __epoch_data__from_channel_data__by_trials(ref_data, channel_idx, channel_da
     return ref_data
 
 
-def __load_data_epochs__by_channels(data_reader, retrieve_channels,
-                                    onsets, trial_epoch,
-                                    baseline_method, baseline_epoch, out_of_bound_method):
+def _load_data_epochs__by_channels(data_reader, retrieve_channels,
+                                   onsets, trial_epoch,
+                                   baseline_method, baseline_epoch, out_of_bound_method):
     """
     Load data epochs to a matrix (format: channel x trials/epochs x time) by iterating over and loading data per channel
     and retrieving the trial-epochs
@@ -489,7 +489,7 @@ def __load_data_epochs__by_channels(data_reader, retrieve_channels,
     Note:   Since this method retrieves the data of a single channel before extracting the epochs, it is reasonably memory
             efficient. It is well suited when the entire dataset is pre-loaded in memory anyway. However,
             when the entire set is not in memory, epoching can be performed even more memory efficient using
-            the '__load_data_epochs__by_trial' method (which should be equally fast or even faster)
+            the '_load_data_epochs__by_trial' method (which should be equally fast or even faster)
             # TODO: test speeds
 
     Args:
@@ -531,9 +531,9 @@ def __load_data_epochs__by_channels(data_reader, retrieve_channels,
     return data_reader.sampling_rate, data
 
 
-def __load_data_epochs__by_trial(data_reader, retrieve_channels,
-                                 onsets, trial_epoch,
-                                 baseline_method, baseline_epoch, out_of_bound_method):
+def _load_data_epochs__by_trial(data_reader, retrieve_channels,
+                                onsets, trial_epoch,
+                                baseline_method, baseline_epoch, out_of_bound_method):
     """
     Load data epochs to a matrix (format: channel x trials/epochs x time) by looping over and loading data per
     trial (for all channels) and retrieving the trial data by iterating over each of the channels
@@ -654,16 +654,16 @@ def __load_data_epochs__by_trial(data_reader, retrieve_channels,
     return data_reader.sampling_rate, data
 
 
-def __load_data_epoch_averages__by_condition_trial(data_reader, retrieve_channels,
-                                                   conditions_onsets, trial_epoch,
-                                                   baseline_method, baseline_epoch, out_of_bound_method, metric_callbacks):
+def _load_data_epoch_averages__by_condition_trial(data_reader, retrieve_channels,
+                                                  conditions_onsets, trial_epoch,
+                                                  baseline_method, baseline_epoch, out_of_bound_method, metric_callbacks):
     """
     Load data epoch averages to a matrix (format: channel x condition x time) by looping over conditions, looping over
     the trials within a condition and then load the data per condition-trial (for all channels) and perform
     averaging (and metric calculation) by iterating over each of the channels
 
     Note:   When the entire dataset is not preloaded this is the fastest solution while using a small amount of
-            memory (because only the required data is loaded). The '__load_data_epoch_averages__by_channel_condition_trial' is
+            memory (because only the required data is loaded). The '_load_data_epoch_averages__by_channel_condition_trial' is
             even more memory efficient but slower for MEF3. For preloaded data there is not much difference because the
             whole set is load to memory first, so just numpy-views are returned and used.
             # TODO: test speeds
@@ -1203,16 +1203,16 @@ def __subload_data_epoch_averages__from_channel__by_condition_trials(ref_data, r
     return data_reader.sampling_rate, ref_data, ref_metric_values, ref_var
 
 
-def __load_data_epoch_averages__by_channel_condition_trial(data_reader, channels,
-                                                           conditions_onsets, trial_epoch,
-                                                           baseline_method, baseline_epoch, out_of_bound_method, metric_callbacks):
+def _load_data_epoch_averages__by_channel_condition_trial(data_reader, channels,
+                                                          conditions_onsets, trial_epoch,
+                                                          baseline_method, baseline_epoch, out_of_bound_method, metric_callbacks):
     """
     Load data epoch averages to a matrix (format: channel x condition x time) by looping over channels, then over
     conditions and then within that channel-condition combination loop over each of the trials to load the specific
     channel-condition-trial data. The averaging (and metric calculation) is performed on a temporary matrix in the
     channel loop
 
-    Note:     This function is even more memory efficient than '__load_data_epoch_averages__by_condition_trial', but
+    Note:     This function is even more memory efficient than '_load_data_epoch_averages__by_condition_trial', but
               slower when the entire dataset is not pre-loaded. For pre-loaded datasets there is not much difference because
               the whole set is loaded to memory first, so just numpy-views are returned and used.
               # TODO: retest speeds
@@ -1262,10 +1262,10 @@ def __load_data_epoch_averages__by_channel_condition_trial(data_reader, channels
     return data_reader.sampling_rate, data, metric_values
 
 
-def __load_data_epochs__by_channels__withPrep(average, data_reader, retrieve_channels, onsets,
-                                              trial_epoch, baseline_method, baseline_epoch,
-                                              out_of_bound_method, metric_callbacks,
-                                              high_pass, early_reref, line_noise_removal, late_reref, priority):
+def _load_data_epochs__by_channels__withPrep(average, data_reader, retrieve_channels, onsets,
+                                             trial_epoch, baseline_method, baseline_epoch,
+                                             out_of_bound_method, metric_callbacks,
+                                             high_pass, early_reref, line_noise_removal, late_reref, priority):
     """
     Load the data, preprocess and either epoch or (optionally) calculate metrics and epoch-average to a matrix.
     This function processes data per channel in order to minimize memory usage but still be able to apply preprocessing
