@@ -23,14 +23,14 @@ class IeegDataReader(object):
 
     initialized = False
     data_path = ''
-    data_preload = False
+    preload_data = False
 
     data_format = ''                # the type of data ('bv', 'edf' or 'mef3')
     sampling_rate = -1              # the sampling rate of the dataset (from metadata, assumes same rate over channels)
     num_samples = -1                # the total number of samples per channel (from metadata, assumes same rate over channels)
     channel_names = []              # all of the channel names
 
-    def __new__(cls, data_path, data_preload=False):
+    def __new__(cls, data_path, preload_data=False):
 
         # return a sub-class instance depending on the format
         try:
@@ -55,9 +55,9 @@ class IeegDataReader(object):
                 logging.error('Invalid data path (' + data_path + ')')
                 raise ValueError('Invalid data path')
 
-    def __init__(self, data_path, data_preload=False):
+    def __init__(self, data_path, preload_data=False):
         self.data_path = data_path
-        self.data_preload = data_preload
+        self.preload_data = preload_data
 
     @abstractmethod
     def close(self): pass

@@ -28,8 +28,8 @@ class BrainVisionReader(IeegDataReader):
     bv_hdr = None                   # header
     bv_data = None                  # data (only used on preload)
 
-    def __init__(self, data_path, data_preload=False):
-        super().__init__(data_path, data_preload)
+    def __init__(self, data_path, preload_data=False):
+        super().__init__(data_path, preload_data)
         self.data_format = 'bv'
 
         # load header
@@ -45,7 +45,7 @@ class BrainVisionReader(IeegDataReader):
         self.channel_names = self.bv_hdr['channel_names']
 
         # (optionally) preload data
-        if self.data_preload:
+        if self.preload_data:
             try:
                 _, self.bv_data = self.bv_read_data(filepath=self.data_path, hdr=self.bv_hdr)
             except (FileNotFoundError, IOError, TypeError, RuntimeError):

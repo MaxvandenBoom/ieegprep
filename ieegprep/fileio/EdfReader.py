@@ -27,8 +27,8 @@ class EdfReader(IeegDataReader):
     edf_hdr = None                   # EDF header
     edf_data = None                  # EDF data (only used on preload)
 
-    def __init__(self, data_path, data_preload=False):
-        super().__init__(data_path, data_preload)
+    def __init__(self, data_path, preload_data=False):
+        super().__init__(data_path, preload_data)
         self.data_format = 'edf'
 
         # load header
@@ -44,7 +44,7 @@ class EdfReader(IeegDataReader):
         self.channel_names, _ = EdfReader.edf_retrieve_all_channel_names(self.edf_hdr)
 
         # (optionally) preload data
-        if self.data_preload:
+        if self.preload_data:
             try:
                 _, self.edf_data = self.edf_read_data(filepath=self.data_path, hdr=self.edf_hdr, unit='uV')
             except (FileNotFoundError, IOError, TypeError, RuntimeError):

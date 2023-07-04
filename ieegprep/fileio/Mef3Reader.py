@@ -21,8 +21,8 @@ class Mef3Reader(IeegDataReader):
     mef_session = None
     mef_data = None
 
-    def __init__(self, data_path, data_preload=False):
-        super().__init__(data_path, data_preload)
+    def __init__(self, data_path, preload_data=False):
+        super().__init__(data_path, preload_data)
         self.data_format = 'mef3'
 
         # read the session metadata
@@ -42,7 +42,7 @@ class Mef3Reader(IeegDataReader):
             self.channel_names.append(ts_channel_name)
 
         # (optionally) preload data
-        if self.data_preload:
+        if self.preload_data:
 
             # initialize empty array
             self.mef_data = []
