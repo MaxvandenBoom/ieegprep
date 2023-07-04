@@ -9,9 +9,11 @@ This program is free software: you can redistribute it and/or modify it under th
 This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
+from math import isnan
 import json
 import logging
 import pandas as pd
+from ieegprep.utils.misc import is_number
 
 
 def load_channel_info(filepath):
@@ -61,7 +63,7 @@ def load_event_info(filepath, addition_required_columns=None):
         addition_required_columns(list/tuple):  One or multiple additional columns that need to be present in the _events.tsv
 
     Returns:
-        csv (dataframe):                        A pandas dataframe containing the evetns information
+        csv (dataframe):                        A pandas dataframe containing the events information
 
     Raises:
         FileNotFoundError:                      If the file could not be found
@@ -87,6 +89,71 @@ def load_event_info(filepath, addition_required_columns=None):
 
     #
     return csv
+
+
+def load_stim_event_info(filepath, additional_required_columns=None):
+    """
+    Retrieve the electrical stimulation events from a _events.tsv file
+
+    Args:
+        filepath (str):                           The path to the _events.tsv file to load
+        additional_required_columns(list/tuple):  One or multiple additional columns that need to be present in the _events.tsv
+
+    Returns:
+        trial_onsets (list)                       A list with the onsets of the stimulus events
+        trial_pairs (list)                        A list with the stim-pair names of each stimulus events
+        trials_bad_onsets                         If a status column exists in the events file, this list holds the onsets
+                                                  of the trials that were marked as 'bad' and not included
+
+    Raises:
+        RuntimeError:                             If the file could not be found, or if the mandatory 'onset', 'trial_type',
+                                                  'electrical_stimulation_site' column or any of the required additional
+                                                   columns could not be found
+
+    Note:   This function expects the column 'trial_type' and 'electrical_stimulation_site' to exist in the _events.tsv file
+            according to the BIDS iEEG electrical stimulation specification.
+    Note 2: If a column status exists in the _events.tsv file, then these trials marked as 'bad' will be excluded
+
+    """
+
+    # complete list of required columns
+    required_columns = ['trial_type', 'electrical_stimulation_site']
+    if not additional_required_columns is None:
+        for column in additional_required_columns:
+            required_columns.append(column)
+
+    # retrieve the stimulation events (onsets and pairs) from the events.tsv file
+    try:
+        events_tsv = load_event_info(filepath, required_columns)
+    except (FileNotFoundError, LookupError):
+        logging.error('Could not load the stimulation event metadata (\'' + filepath + '_events.tsv\'), exiting...')
+        raise RuntimeError('Could not load the stimulation event metadata')
+
+    # acquire the onset and electrode-pair for each stimulation
+    trial_onsets = []
+    trial_pairs = []
+    trials_bad_onsets = []
+    trials_have_status = 'status' in events_tsv.columns
+    for index, row in events_tsv.iterrows():
+        if row['trial_type'].lower() == 'electrical_stimulation':
+            if not is_number(row['onset']) or isnan(float(row['onset'])) or float(row['onset']) < 0:
+                logging.warning('Invalid onset \'' + row['onset'] + '\' in events, should be a numeric value >= 0. Discarding trial...')
+                continue
+
+            if trials_have_status:
+                if not row['status'].lower() == 'good':
+                    trials_bad_onsets.append(row['onset'])
+                    continue
+
+            pair = row['electrical_stimulation_site'].split('-')
+            if not len(pair) == 2 or len(pair[0]) == 0 or len(pair[1]) == 0:
+                logging.error('Electrical stimulation site \'' + row['electrical_stimulation_site'] + '\' invalid, should be two values separated by a dash (e.g. CH01-CH02), exiting...')
+                raise RuntimeError('Electrical stimulation site invalid')
+
+            trial_onsets.append(float(row['onset']))
+            trial_pairs.append(pair)
+
+    return trial_onsets, trial_pairs, trials_bad_onsets
 
 
 def load_ieeg_sidecar(filepath):
