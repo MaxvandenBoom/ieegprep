@@ -326,8 +326,17 @@ def __prepare_input(data_path, trial_epoch, baseline_norm, baseline_epoch, out_o
 
     """
 
-    # data-set format
-    data_extension = data_path[data_path.rindex("."):]
+    # check data path
+    if not os.path.exists(data_path):
+        logging.error('No such file or directory: \'' + data_path + '\'')
+        raise FileNotFoundError('No such file or directory: \'' + data_path + '\'')
+
+    try:
+        data_extension = data_path[data_path.rindex("."):]
+    except ValueError:
+            logging.error('Unknown data format, no extension')
+            raise ValueError('Unknown data format')
+
     if not any(data_extension in x for x in VALID_FORMAT_EXTENSIONS):
         logging.error('Unknown data format (' + data_extension + ')')
         raise ValueError('Unknown data format (' + data_extension + ')')
