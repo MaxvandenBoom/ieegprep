@@ -9,6 +9,7 @@ This program is free software: you can redistribute it and/or modify it under th
 This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
+import os
 import gc
 import logging
 import warnings
@@ -24,7 +25,8 @@ LOGGING_CAPTION_INDENT_LENGTH   = 50      # TODO: also in erdetect.core.config
 def load_data_epochs(data_path, retrieve_channels, onsets,
                      trial_epoch=(-1, 3), baseline_norm=None, baseline_epoch=(-1, -0.1),
                      out_of_bound_handling='error',
-                     high_pass=False, early_reref=None, line_noise_removal=None, late_reref=None, preproc_priority='mem'):
+                     high_pass=False, early_reref=None, line_noise_removal=None, late_reref=None,
+                     preload_data=False, preproc_priority='mem'):
     """
     Load and epoch the data into a matrix based on channels, the trial onsets and the epoch range (relative to the onsets)
 
@@ -65,7 +67,10 @@ def load_data_epochs(data_path, retrieve_channels, onsets,
         late_reref (None or RerefStruct):   Preprocess with late (after line-noise removal) re-referencing. Generate a
                                             RerefStruct instance using one of the factory methods (e.g. generate_car) and
                                             pass it here to allow for re-referencing. Pass None to skip late re-referencing.
-        preproc_priority (str):             Set the preprocessing priority, can be set to either 'mem' (default) or 'speed'
+        preload_data (bool):                Preload the entire dataset before processing. Preloading is faster but requires
+                                            significantly more memory
+        preproc_priority (str):             When preprocessing is required, the priority can be set to
+                                            either 'mem' (default) or 'speed'
 
     Returns:
         sampling_rate (int or double):      the sampling rate at which the data was acquired
@@ -82,7 +87,8 @@ def load_data_epochs(data_path, retrieve_channels, onsets,
     try:
         data_reader, baseline_method, out_of_bound_method = __prepare_input(data_path,
                                                                             trial_epoch, baseline_norm, baseline_epoch,
-                                                                            out_of_bound_handling, preproc_priority)
+                                                                            out_of_bound_handling,
+                                                                           preload_data=preload_data)
         # TODO: check preprocessing input
 
     except Exception as e:
@@ -105,8 +111,7 @@ def load_data_epochs(data_path, retrieve_channels, onsets,
                                                                             baseline_method=baseline_method, baseline_epoch=baseline_epoch,
                                                                             out_of_bound_method=out_of_bound_method,
                                                                             metric_callbacks=None,
-                                                                            high_pass=high_pass,
-                                                                            early_reref=early_reref,
+                                                                            high_pass=high_pass, early_reref=early_reref,
                                                                             line_noise_removal=line_noise_removal,
                                                                             late_reref=late_reref,
                                                                             priority=preproc_priority)
@@ -150,7 +155,8 @@ def load_data_epochs(data_path, retrieve_channels, onsets,
 def load_data_epochs_averages(data_path, retrieve_channels, conditions_onsets,
                               trial_epoch=(-1, 3), baseline_norm=None, baseline_epoch=(-1, -0.1),
                               out_of_bound_handling='error', metric_callbacks=None,
-                              high_pass=False, early_reref=None, line_noise_removal=None, late_reref=None, preproc_priority='mem'):
+                              high_pass=False, early_reref=None, line_noise_removal=None, late_reref=None,
+                              preload_data=False, preproc_priority='mem'):
 
 
     """
@@ -211,7 +217,10 @@ def load_data_epochs_averages(data_path, retrieve_channels, conditions_onsets,
         late_reref (None or RerefStruct):     Preprocess with late (after line-noise removal) re-referencing. Generate a
                                               RerefStruct instance using one of the factory methods (e.g. generate_car) and
                                               pass it here to allow for re-referencing. Pass None to skip late re-referencing.
-        preproc_priority (str):               Set the preprocessing priority, can be set to either 'mem' (default) or 'speed'
+        preload_data (bool):                  Preload the entire dataset before processing. Preloading is faster but requires
+                                              significantly more memory
+        preproc_priority (str):               When preprocessing is required, the priority can be set to
+                                              either 'mem' (default) or 'speed'
 
     Returns:
         sampling_rate (int or double):        The sampling rate at which the data was acquired
@@ -221,8 +230,7 @@ def load_data_epochs_averages(data_path, retrieve_channels, conditions_onsets,
                                               with the metric callback results (format: channel x condition x metric),
                                               else wise None
 
-    Note: this function input arguments are in seconds relative to trial onsets because the sample rate will
-          only be known till after we read the data
+    Note: this function input arguments are (seconds) relative to trial onsets
     """
 
     #
@@ -231,7 +239,7 @@ def load_data_epochs_averages(data_path, retrieve_channels, conditions_onsets,
     try:
         data_reader, baseline_method, out_of_bound_method = __prepare_input(data_path,
                                                                             trial_epoch, baseline_norm, baseline_epoch,
-                                                                            out_of_bound_handling, preproc_priority)
+                                                                            out_of_bound_handling, preload_data=preload_data)
         # TODO: check preprocessing input
 
     except Exception as e:
@@ -255,8 +263,7 @@ def load_data_epochs_averages(data_path, retrieve_channels, conditions_onsets,
                                                                                            baseline_method=baseline_method, baseline_epoch=baseline_epoch,
                                                                                            out_of_bound_method=out_of_bound_method,
                                                                                            metric_callbacks=metric_callbacks,
-                                                                                           high_pass=high_pass,
-                                                                                           early_reref=early_reref,
+                                                                                           high_pass=high_pass, early_reref=early_reref,
                                                                                            line_noise_removal=line_noise_removal,
                                                                                            late_reref=late_reref,
                                                                                            priority=preproc_priority)
@@ -301,16 +308,22 @@ def load_data_epochs_averages(data_path, retrieve_channels, conditions_onsets,
     return sampling_rate, data, metric_values
 
 
-
 #
 # private functions
 #
 
-def __prepare_input(data_path, trial_epoch, baseline_norm, baseline_epoch, out_of_bound_handling, preproc_priority):
+def __prepare_input(data_path, trial_epoch, baseline_norm, baseline_epoch, out_of_bound_handling, preload_data=False):
     """
     Check and prepare the input for loading data
 
-    preproc_priority (str):              Set the preprocessing priority, can be set to either 'mem' (default) or 'speed'
+    Args:
+        data_path (str):                      Path to the data file or folder
+        preload_data (bool):                  Whether to preload the entire dataset
+
+
+    Returns:
+        s
+
     """
 
     # data-set format
@@ -326,7 +339,7 @@ def __prepare_input(data_path, trial_epoch, baseline_norm, baseline_epoch, out_o
 
     # create and initialize an IEEG data-reader instance to manage the data.
     try:
-        data_reader = IeegDataReader(data_path, preproc_priority == 'speed')
+        data_reader = IeegDataReader(data_path, preload_data=preload_data)
     except ValueError:
         raise ValueError('Error upon constructing a data reader')
     except RuntimeError:
