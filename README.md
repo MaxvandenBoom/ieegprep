@@ -17,7 +17,7 @@ Read EDF, BrainVision or MEF3 data
 from ieegprep import IeegDataReader
 
 # initialize a reader for a specific dataset
-reader = IeegDataReader('/bids_data_root/subj-01/ieeg/sub-01_run-06_ieeg.vhdr', data_preload=False)
+reader = IeegDataReader('/bids_data_root/subj-01/ieeg/sub-01_run-06_ieeg.vhdr', preload_data=False)
 
 # print metadata
 print(reader.sampling_rate)
