@@ -28,7 +28,7 @@ class BrainVisionReader(IeegDataReader):
     bv_hdr = None                   # header
     bv_data = None                  # data (only used on preload)
 
-    def __init__(self, data_path, preload_data=False):
+    def __init__(self, data_path, preload_data=False, password=None):
         super().__init__(data_path, preload_data)
         self.data_format = 'bv'
 

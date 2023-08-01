@@ -55,7 +55,7 @@ class IeegDataReader(object):
                 logging.error('Invalid data path (' + data_path + ')')
                 raise ValueError('Invalid data path')
 
-    def __init__(self, data_path, preload_data=False):
+    def __init__(self, data_path, preload_data=False, password=None):
         self.data_path = data_path
         self.preload_data = preload_data
 

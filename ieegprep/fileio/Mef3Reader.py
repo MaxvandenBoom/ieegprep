@@ -21,7 +21,7 @@ class Mef3Reader(IeegDataReader):
     mef_session = None
     mef_data = None
 
-    def __init__(self, data_path, preload_data=False):
+    def __init__(self, data_path, preload_data=False, password=None):
         super().__init__(data_path, preload_data)
         self.data_format = 'mef3'
 
