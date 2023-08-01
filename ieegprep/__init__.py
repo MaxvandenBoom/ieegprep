@@ -11,7 +11,8 @@ if sys.version_info < (3, 8, 0):
 
 #
 # Pre-check some dependencies (and in particular their versions) at runtime
-# Note: added since, despite the (minimum) requirements during install, packages can be downgraded or removed later
+# Note 1: added since, despite the (minimum) requirements during install, packages can be downgraded or removed later
+# Note 2: deliberately not in a separate module, since this is the entry point of the package and dependencies already be used after
 #
 from configparser import ConfigParser
 from importlib.metadata import version, PackageNotFoundError
