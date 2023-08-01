@@ -15,7 +15,7 @@ dependencies = [
     "numpy >= 1.22.3",
     "scipy >= 1.8.0",
     "pandas >= 1.4.2",
-    "pymef >= 1.3.4",
+    "pymef >= 1.4.0",
     "psutil >= 5.9.4",
 ]
 keywords = ["intracranial", "electroencephalography", "ieeg", "BIDS"]
