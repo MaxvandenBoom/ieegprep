@@ -24,7 +24,7 @@ import pickle
 import numpy as np
 from datetime import datetime
 from ieegprep.utils.console import ConsoleColors
-from ieegprep.utils.misc import clear_virtual_cache
+from ieegprep.utils.misc import time_func, clear_virtual_cache
 from ieegprep.fileio.BrainVisionReader import BrainVisionReader
 
 class TestFileIO(unittest.TestCase):
@@ -43,7 +43,6 @@ class TestFileIO(unittest.TestCase):
         """
         Test reader performance
         """
-        from ieegprep.utils.misc import time_func
 
         uncached_read_repetitions = 20
         cached_read_repetitions = 100
