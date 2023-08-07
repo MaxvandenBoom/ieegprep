@@ -1,8 +1,8 @@
 %
 % Script to visualize the performances of the Brainvision reader (test_fileio_bv_perf.py) and EDF reader (test_fileio_edf_perf.py) unit-tests
-% To specify which results to visualize, adjust the line below to a specific .mat file
+% To specify which results to visualize, adjust the line below to pick a specific .mat file
 %
-load('D:\BIDS_erdetect\fileio_results\results_bv_win_multiplexed__20230213_105805__200.mat');
+load('D:\BIDS_erdetect\fileio_results\results_bv_win7_multiplexed__20230213_105805__200.mat');
 
 
 %%
@@ -126,7 +126,7 @@ function plotViolin(xIndex, values, color)
                             'BoxColor', color, ...
                             'MedianColor', [0 0 0]);
     
-    % mark maximum
+    % mark mean
     scoreMean = mean(values);
     plot([xIndex - 0.3, xIndex + 0.3], [scoreMean, scoreMean], '-', 'LineWidth', 2, 'Color', 'k');
 
