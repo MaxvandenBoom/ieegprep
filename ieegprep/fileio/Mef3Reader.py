@@ -3,7 +3,7 @@ Wrapper around PyMef to read Mef3 files
 
 
 =====================================================
-Copyright 2022, Max van den Boom (Multimodal Neuroimaging Lab, Mayo Clinic, Rochester MN)
+Copyright 2023, Max van den Boom (Multimodal Neuroimaging Lab, Mayo Clinic, Rochester MN)
 
 PyMef by Jan Cimbalnick, Daniel Crepeau et al.
 
