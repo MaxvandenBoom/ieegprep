@@ -1,5 +1,5 @@
 """
-Unit tests to monitor the memory usage while load and epoching different data types
+Unit tests to monitor the memory usage while loading and epoching different data types
 
 
 =====================================================
@@ -12,7 +12,7 @@ You should have received a copy of the GNU General Public License along with thi
 import os
 import sys
 import unittest
-from ieegprep.bids.data_epoch import _prepare_input, _load_data_epochs__by_channels, _load_data_epochs__by_trials
+from ieegprep.bids.data_epoch import _prepare_input, _load_data_epochs__by_channels, _load_data_epochs__by_trials, _load_data_epochs__by_channels__withPrep
 from ieegprep.bids.sidecars import load_stim_event_info
 from ieegprep.utils.console import ConsoleColors
 from ieegprep.utils.misc import clear_virtual_cache
@@ -33,6 +33,11 @@ class TestEpochNoPreProcMem(unittest.TestCase):
     test_baseline_norm = None
     test_baseline_epoch = (-1, -0.1)
     test_trial_epoch = (-1, 3)
+
+
+    #
+    # by_channels
+    #
 
     def test01_epoch__by_channels__bv_multiplexed__no_preload_mem(self):
         test_name = 'Epoch (no preprocessing), _load_data_epochs__by_channels, Brainvision (multiplexed), no preload'
@@ -65,6 +70,11 @@ class TestEpochNoPreProcMem(unittest.TestCase):
     def test08_epoch__by_channels__mef__preload_mem(self):
         test_name = 'Epoch (no preprocessing), _load_data_epochs__by_channels, MEF, preloaded'
         self._run_test(test_name, self.mef_data_path, 'channels', preload_data=True)
+
+
+    #
+    # by_trials
+    #
 
     def test09_epoch__by_trials__bv_multiplexed__no_preload_mem(self):
         test_name = 'Epoch (no preprocessing), _load_data_epochs__by_trials, Brainvision (multiplexed), no preload'
@@ -99,6 +109,80 @@ class TestEpochNoPreProcMem(unittest.TestCase):
         self._run_test(test_name, self.mef_data_path, 'trials', preload_data=True)
 
 
+    #
+    # _load_data_epochs__by_channels__withPrep (mem)
+    #
+
+    def test17_epoch__by_prep_mem__bv_multiplexed__no_preload_mem(self):
+        test_name = 'Epoch (no preprocessing), _load_data_epochs__by_channels__withPrep (mem), Brainvision (multiplexed), no preload'
+        self._run_test(test_name, self.bv_data_path, 'prep_mem', preload_data=False, set_bv_orientation='MULTIPLEXED')
+
+    def test18_epoch__by_prep_mem__bv_vectorized__no_preload_mem(self):
+        test_name = 'Epoch (no preprocessing), _load_data_epochs__by_channels__withPrep (mem), Brainvision (vectorized), no preload'
+        self._run_test(test_name, self.bv_data_path, 'prep_mem', preload_data=False, set_bv_orientation='VECTORIZED')
+
+    def test19_epoch__by_prep_mem__bv_multiplexed__preload_mem(self):
+        test_name = 'Epoch (no preprocessing), _load_data_epochs__by_channels__withPrep (mem), Brainvision (multiplexed), preloaded'
+        self._run_test(test_name, self.bv_data_path, 'prep_mem', preload_data=True, set_bv_orientation='MULTIPLEXED')
+
+    def test20_epoch__by_prep_mem__bv_vectorized__preload_mem(self):
+        test_name = 'Epoch (no preprocessing), _load_data_epochs__by_channels__withPrep (mem), Brainvision (vectorized), preloaded'
+        self._run_test(test_name, self.bv_data_path, 'prep_mem', preload_data=True, set_bv_orientation='VECTORIZED')
+
+    def test21_epoch__by_prep_mem__edf__no_preload_mem(self):
+        test_name = 'Epoch (no preprocessing), _load_data_epochs__by_channels__withPrep (mem), EDF, no preload'
+        self._run_test(test_name, self.edf_data_path, 'prep_mem', preload_data=False)
+
+    def test22_epoch__by_prep_mem__edf__preload_mem(self):
+        test_name = 'Epoch (no preprocessing), _load_data_epochs__by_channels__withPrep (mem), EDF, preloaded'
+        self._run_test(test_name, self.edf_data_path, 'prep_mem', preload_data=True)
+
+    def test23_epoch__by_prep_mem__mef__no_preload_mem(self):
+        test_name = 'Epoch (no preprocessing), _load_data_epochs__by_channels__withPrep (mem), MEF, no preload'
+        self._run_test(test_name, self.mef_data_path, 'prep_mem', preload_data=False)
+
+    def test24_epoch__by_prep_mem__mef__preload_mem(self):
+        test_name = 'Epoch (no preprocessing), _load_data_epochs__by_channels__withPrep (mem), MEF, preloaded'
+        self._run_test(test_name, self.mef_data_path, 'prep_mem', preload_data=True)
+
+
+    #
+    # _load_data_epochs__by_channels__withPrep (speed)
+    #
+
+    def test25_epoch__by_prep_mem__bv_multiplexed__no_preload_speed(self):
+        test_name = 'Epoch (no preprocessing), _load_data_epochs__by_channels__withPrep (speed), Brainvision (multiplexed), no preload'
+        self._run_test(test_name, self.bv_data_path, 'prep_speed', preload_data=False, set_bv_orientation='MULTIPLEXED')
+
+    def test26_epoch__by_prep_mem__bv_vectorized__no_preload_speed(self):
+        test_name = 'Epoch (no preprocessing), _load_data_epochs__by_channels__withPrep (speed), Brainvision (vectorized), no preload'
+        self._run_test(test_name, self.bv_data_path, 'prep_speed', preload_data=False, set_bv_orientation='VECTORIZED')
+
+    def test27_epoch__by_prep_mem__bv_multiplexed__preload_speed(self):
+        test_name = 'Epoch (no preprocessing), _load_data_epochs__by_channels__withPrep (speed), Brainvision (multiplexed), preloaded'
+        self._run_test(test_name, self.bv_data_path, 'prep_speed', preload_data=True, set_bv_orientation='MULTIPLEXED')
+
+    def test28_epoch__by_prep_mem__bv_vectorized__preload_speed(self):
+        test_name = 'Epoch (no preprocessing), _load_data_epochs__by_channels__withPrep (speed), Brainvision (vectorized), preloaded'
+        self._run_test(test_name, self.bv_data_path, 'prep_speed', preload_data=True, set_bv_orientation='VECTORIZED')
+
+    def test29_epoch__by_prep_mem__edf__no_preload_speed(self):
+        test_name = 'Epoch (no preprocessing), _load_data_epochs__by_channels__withPrep (speed), EDF, no preload'
+        self._run_test(test_name, self.edf_data_path, 'prep_speed', preload_data=False)
+
+    def test30_epoch__by_prep_mem__edf__preload_speed(self):
+        test_name = 'Epoch (no preprocessing), _load_data_epochs__by_channels__withPrep (speed), EDF, preloaded'
+        self._run_test(test_name, self.edf_data_path, 'prep_speed', preload_data=True)
+
+    def test31_epoch__by_prep_mem__mef__no_preload_speed(self):
+        test_name = 'Epoch (no preprocessing), _load_data_epochs__by_channels__withPrep (speed), MEF, no preload'
+        self._run_test(test_name, self.mef_data_path, 'prep_speed', preload_data=False)
+
+    def test32_epoch__by_prep_mem__mef__preload_speed(self):
+        test_name = 'Epoch (no preprocessing), _load_data_epochs__by_channels__withPrep (speed), MEF, preloaded'
+        self._run_test(test_name, self.mef_data_path, 'prep_speed', preload_data=True)
+
+
     @profile
     def _prepare_and_epoch(self, data_path, by_routine, trial_onsets, preload_data, set_bv_orientation=None):
         """
@@ -120,10 +204,21 @@ class TestEpochNoPreProcMem(unittest.TestCase):
 
         elif by_routine == 'trials':
             sampling_rate, data = _load_data_epochs__by_trials(data_reader, data_reader.channel_names, trial_onsets,
-                                                              trial_epoch=self.test_trial_epoch,
-                                                              baseline_method=baseline_method, baseline_epoch=self.test_baseline_epoch,
-                                                              out_of_bound_method=out_of_bound_method)
+                                                               trial_epoch=self.test_trial_epoch,
+                                                               baseline_method=baseline_method, baseline_epoch=self.test_baseline_epoch,
+                                                               out_of_bound_method=out_of_bound_method)
+
+        elif by_routine in ('prep_mem', 'prep_speed'):
+
+            sampling_rate, data = _load_data_epochs__by_channels__withPrep(False, data_reader, data_reader.channel_names, trial_onsets,
+                                                                           trial_epoch=self.test_trial_epoch,
+                                                                           baseline_method=baseline_method, baseline_epoch=self.test_baseline_epoch,
+                                                                           out_of_bound_method=out_of_bound_method, metric_callbacks=None,
+                                                                           high_pass=False, early_reref=None, line_noise_removal=None, late_reref=None,
+                                                                           priority='mem' if by_routine == 'prep_mem' else 'speed')
+
         data_reader.close()
+
 
     def _run_test(self, test_name, data_path, by_routine, preload_data, set_bv_orientation=None):
         ConsoleColors.print_green('Test mem: ' + test_name)
