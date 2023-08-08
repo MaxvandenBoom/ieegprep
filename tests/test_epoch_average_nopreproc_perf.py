@@ -40,8 +40,8 @@ class TestEpochAverageNoPreProcPerf(unittest.TestCase):
         Test reader performance
         """
 
-        uncached_read_repetitions = 5
-        cached_read_repetitions = 5
+        uncached_read_repetitions = 10
+        cached_read_repetitions = 10
 
 
         # define tests
@@ -318,8 +318,6 @@ class TestEpochAverageNoPreProcPerf(unittest.TestCase):
                                                                high_pass=False, early_reref=None, line_noise_removal=None, late_reref=None,
                                                                priority='mem' if tests[test_name]['by_routine'] == 'prep_mem' else 'speed')
 
-                        pass
-
                     data_reader.close()
 
                     print('              Mean: ' + str(round(mean, 2)) + ' - std: ' + str(round(std, 2)) + ' - range: ' + str(round(ret_range[0], 2)) + '-' + str(round(ret_range[1], 2)))
@@ -417,7 +415,7 @@ class TestEpochAverageNoPreProcPerf(unittest.TestCase):
             os_text = 'lnx'
         elif platform_info['platform'].lower() == 'darwin':
             os_text = 'mac'
-        output_file = 'results_' + os_text + '__' + datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_file = 'results_epoch_averages_' + os_text + '__' + datetime.now().strftime("%Y%m%d_%H%M%S")
 
         # as pickle
         with open('./' + output_file + '.pdat', 'wb') as output_handle:

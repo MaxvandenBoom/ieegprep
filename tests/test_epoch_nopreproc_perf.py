@@ -14,7 +14,7 @@ import numpy as np
 from datetime import datetime
 from ieegprep.utils.console import ConsoleColors
 from ieegprep.utils.misc import time_func, clear_virtual_cache
-from ieegprep.bids.data_epoch import _prepare_input, _load_data_epochs__by_channels, _load_data_epochs__by_trials
+from ieegprep.bids.data_epoch import _prepare_input, _load_data_epochs__by_channels, _load_data_epochs__by_trials, _load_data_epochs__by_channels__withPrep
 from ieegprep.bids.sidecars import load_stim_event_info
 
 
@@ -43,31 +43,30 @@ class TestEpochNoPreProcPerf(unittest.TestCase):
         uncached_read_repetitions = 25
         cached_read_repetitions = 25
 
-
         # define tests
         tests = dict()
 
-        tests['by_channels__bv_multiplexed'] = dict()
-        tests['by_channels__bv_multiplexed']['test_name']= 'Epoch (no preprocessing), Brainvision (multiplexed), _load_data_epochs__by_channels'
-        tests['by_channels__bv_multiplexed']['uncached_read_repetitions'] = uncached_read_repetitions
-        tests['by_channels__bv_multiplexed']['cached_read_repetitions'] = cached_read_repetitions
-        tests['by_channels__bv_multiplexed']['data_path'] = self.bv_data_path
-        tests['by_channels__bv_multiplexed']['by_routine'] = 'channels'
-        tests['by_channels__bv_multiplexed']['set_bv_orientation'] = 'MULTIPLEXED'
-        tests['by_channels__bv_multiplexed']['conditions'] = []
-        tests['by_channels__bv_multiplexed']['conditions'].append(False)            # not preloaded
-        tests['by_channels__bv_multiplexed']['conditions'].append(True)             # preloaded
+        tests['by_channels__bv_mult'] = dict()
+        tests['by_channels__bv_mult']['test_name']= 'Epoch (no preprocessing), Brainvision (multiplexed), _load_data_epochs__by_channels'
+        tests['by_channels__bv_mult']['uncached_read_repetitions'] = uncached_read_repetitions
+        tests['by_channels__bv_mult']['cached_read_repetitions'] = cached_read_repetitions
+        tests['by_channels__bv_mult']['data_path'] = self.bv_data_path
+        tests['by_channels__bv_mult']['by_routine'] = 'channels'
+        tests['by_channels__bv_mult']['set_bv_orientation'] = 'MULTIPLEXED'
+        tests['by_channels__bv_mult']['conditions'] = []
+        tests['by_channels__bv_mult']['conditions'].append(False)            # not preloaded
+        tests['by_channels__bv_mult']['conditions'].append(True)             # preloaded
 
-        tests['by_channels__bv_vectorized'] = dict()
-        tests['by_channels__bv_vectorized']['test_name']= 'Epoch (no preprocessing), Brainvision (vectorized), _load_data_epochs__by_channels'
-        tests['by_channels__bv_vectorized']['uncached_read_repetitions'] = uncached_read_repetitions
-        tests['by_channels__bv_vectorized']['cached_read_repetitions'] = cached_read_repetitions
-        tests['by_channels__bv_vectorized']['data_path'] = self.bv_data_path
-        tests['by_channels__bv_vectorized']['by_routine'] = 'channels'
-        tests['by_channels__bv_vectorized']['set_bv_orientation'] = 'VECTORIZED'
-        tests['by_channels__bv_vectorized']['conditions'] = []
-        tests['by_channels__bv_vectorized']['conditions'].append(False)            # not preloaded
-        tests['by_channels__bv_vectorized']['conditions'].append(True)             # preloaded
+        tests['by_channels__bv_vect'] = dict()
+        tests['by_channels__bv_vect']['test_name']= 'Epoch (no preprocessing), Brainvision (vectorized), _load_data_epochs__by_channels'
+        tests['by_channels__bv_vect']['uncached_read_repetitions'] = uncached_read_repetitions
+        tests['by_channels__bv_vect']['cached_read_repetitions'] = cached_read_repetitions
+        tests['by_channels__bv_vect']['data_path'] = self.bv_data_path
+        tests['by_channels__bv_vect']['by_routine'] = 'channels'
+        tests['by_channels__bv_vect']['set_bv_orientation'] = 'VECTORIZED'
+        tests['by_channels__bv_vect']['conditions'] = []
+        tests['by_channels__bv_vect']['conditions'].append(False)            # not preloaded
+        tests['by_channels__bv_vect']['conditions'].append(True)             # preloaded
 
         tests['by_channels__edf'] = dict()
         tests['by_channels__edf']['test_name']= 'Epoch (no preprocessing), EDF, _load_data_epochs__by_channels'
@@ -91,27 +90,27 @@ class TestEpochNoPreProcPerf(unittest.TestCase):
         tests['by_channels__mef']['conditions'].append(False)            # not preloaded
         tests['by_channels__mef']['conditions'].append(True)             # preloaded
 
-        tests['by_trials__bv_multiplexed'] = dict()
-        tests['by_trials__bv_multiplexed']['test_name']= 'Epoch (no preprocessing), Brainvision (multiplexed), _load_data_epochs__by_trials'
-        tests['by_trials__bv_multiplexed']['uncached_read_repetitions'] = uncached_read_repetitions
-        tests['by_trials__bv_multiplexed']['cached_read_repetitions'] = cached_read_repetitions
-        tests['by_trials__bv_multiplexed']['data_path'] = self.bv_data_path
-        tests['by_trials__bv_multiplexed']['by_routine'] = 'trials'
-        tests['by_trials__bv_multiplexed']['set_bv_orientation'] = 'MULTIPLEXED'
-        tests['by_trials__bv_multiplexed']['conditions'] = []
-        tests['by_trials__bv_multiplexed']['conditions'].append(False)            # not preloaded
-        tests['by_trials__bv_multiplexed']['conditions'].append(True)             # preloaded
+        tests['by_trials__bv_mult'] = dict()
+        tests['by_trials__bv_mult']['test_name']= 'Epoch (no preprocessing), Brainvision (multiplexed), _load_data_epochs__by_trials'
+        tests['by_trials__bv_mult']['uncached_read_repetitions'] = uncached_read_repetitions
+        tests['by_trials__bv_mult']['cached_read_repetitions'] = cached_read_repetitions
+        tests['by_trials__bv_mult']['data_path'] = self.bv_data_path
+        tests['by_trials__bv_mult']['by_routine'] = 'trials'
+        tests['by_trials__bv_mult']['set_bv_orientation'] = 'MULTIPLEXED'
+        tests['by_trials__bv_mult']['conditions'] = []
+        tests['by_trials__bv_mult']['conditions'].append(False)            # not preloaded
+        tests['by_trials__bv_mult']['conditions'].append(True)             # preloaded
 
-        tests['by_trials__bv_vectorized'] = dict()
-        tests['by_trials__bv_vectorized']['test_name']= 'Epoch (no preprocessing), Brainvision (vectorized), _load_data_epochs__by_trials'
-        tests['by_trials__bv_vectorized']['uncached_read_repetitions'] = uncached_read_repetitions
-        tests['by_trials__bv_vectorized']['cached_read_repetitions'] = cached_read_repetitions
-        tests['by_trials__bv_vectorized']['data_path'] = self.bv_data_path
-        tests['by_trials__bv_vectorized']['by_routine'] = 'trials'
-        tests['by_trials__bv_vectorized']['set_bv_orientation'] = 'VECTORIZED'
-        tests['by_trials__bv_vectorized']['conditions'] = []
-        tests['by_trials__bv_vectorized']['conditions'].append(False)            # not preloaded
-        tests['by_trials__bv_vectorized']['conditions'].append(True)             # preloaded
+        tests['by_trials__bv_vect'] = dict()
+        tests['by_trials__bv_vect']['test_name']= 'Epoch (no preprocessing), Brainvision (vectorized), _load_data_epochs__by_trials'
+        tests['by_trials__bv_vect']['uncached_read_repetitions'] = uncached_read_repetitions
+        tests['by_trials__bv_vect']['cached_read_repetitions'] = cached_read_repetitions
+        tests['by_trials__bv_vect']['data_path'] = self.bv_data_path
+        tests['by_trials__bv_vect']['by_routine'] = 'trials'
+        tests['by_trials__bv_vect']['set_bv_orientation'] = 'VECTORIZED'
+        tests['by_trials__bv_vect']['conditions'] = []
+        tests['by_trials__bv_vect']['conditions'].append(False)            # not preloaded
+        tests['by_trials__bv_vect']['conditions'].append(True)             # preloaded
 
         tests['by_trials__edf'] = dict()
         tests['by_trials__edf']['test_name']= 'Epoch (no preprocessing), EDF, _load_data_epochs__by_trials'
@@ -134,6 +133,94 @@ class TestEpochNoPreProcPerf(unittest.TestCase):
         tests['by_trials__mef']['conditions'] = []
         tests['by_trials__mef']['conditions'].append(False)            # not preloaded
         tests['by_trials__mef']['conditions'].append(True)             # preloaded
+
+        tests['by_prep_mem__bv_mult'] = dict()
+        tests['by_prep_mem__bv_mult']['test_name']= 'Epoch (no preprocessing), Brainvision (multiplexed), _load_data_epochs__by_channels__withPrep'
+        tests['by_prep_mem__bv_mult']['uncached_read_repetitions'] = uncached_read_repetitions
+        tests['by_prep_mem__bv_mult']['cached_read_repetitions'] = cached_read_repetitions
+        tests['by_prep_mem__bv_mult']['data_path'] = self.bv_data_path
+        tests['by_prep_mem__bv_mult']['by_routine'] = 'prep_mem'
+        tests['by_prep_mem__bv_mult']['set_bv_orientation'] = 'MULTIPLEXED'
+        tests['by_prep_mem__bv_mult']['conditions'] = []
+        tests['by_prep_mem__bv_mult']['conditions'].append(False)            # not preloaded
+        tests['by_prep_mem__bv_mult']['conditions'].append(True)             # preloaded
+
+        tests['by_prep_mem__bv_vect'] = dict()
+        tests['by_prep_mem__bv_vect']['test_name']= 'Epoch (no preprocessing), Brainvision (vectorized), _load_data_epochs__by_channels__withPrep'
+        tests['by_prep_mem__bv_vect']['uncached_read_repetitions'] = uncached_read_repetitions
+        tests['by_prep_mem__bv_vect']['cached_read_repetitions'] = cached_read_repetitions
+        tests['by_prep_mem__bv_vect']['data_path'] = self.bv_data_path
+        tests['by_prep_mem__bv_vect']['by_routine'] = 'prep_mem'
+        tests['by_prep_mem__bv_vect']['set_bv_orientation'] = 'VECTORIZED'
+        tests['by_prep_mem__bv_vect']['conditions'] = []
+        tests['by_prep_mem__bv_vect']['conditions'].append(False)            # not preloaded
+        tests['by_prep_mem__bv_vect']['conditions'].append(True)             # preloaded
+
+        tests['by_prep_mem__edf'] = dict()
+        tests['by_prep_mem__edf']['test_name']= 'Epoch (no preprocessing), EDF, _load_data_epochs__by_channels__withPrep'
+        tests['by_prep_mem__edf']['uncached_read_repetitions'] = uncached_read_repetitions
+        tests['by_prep_mem__edf']['cached_read_repetitions'] = cached_read_repetitions
+        tests['by_prep_mem__edf']['data_path'] = self.edf_data_path
+        tests['by_prep_mem__edf']['by_routine'] = 'prep_mem'
+        tests['by_prep_mem__edf']['set_bv_orientation'] = ''
+        tests['by_prep_mem__edf']['conditions'] = []
+        tests['by_prep_mem__edf']['conditions'].append(False)            # not preloaded
+        tests['by_prep_mem__edf']['conditions'].append(True)             # preloaded
+
+        tests['by_prep_mem__mef'] = dict()
+        tests['by_prep_mem__mef']['test_name']= 'Epoch (no preprocessing), MEF3, _load_data_epochs__by_channels__withPrep'
+        tests['by_prep_mem__mef']['uncached_read_repetitions'] = uncached_read_repetitions
+        tests['by_prep_mem__mef']['cached_read_repetitions'] = cached_read_repetitions
+        tests['by_prep_mem__mef']['data_path'] = self.mef_data_path
+        tests['by_prep_mem__mef']['by_routine'] = 'prep_mem'
+        tests['by_prep_mem__mef']['set_bv_orientation'] = ''
+        tests['by_prep_mem__mef']['conditions'] = []
+        tests['by_prep_mem__mef']['conditions'].append(False)            # not preloaded
+        tests['by_prep_mem__mef']['conditions'].append(True)             # preloaded
+
+        tests['by_prep_speed__bv_mult'] = dict()
+        tests['by_prep_speed__bv_mult']['test_name']= 'Epoch (no preprocessing), Brainvision (multiplexed), _load_data_epochs__by_channels__withPrep'
+        tests['by_prep_speed__bv_mult']['uncached_read_repetitions'] = uncached_read_repetitions
+        tests['by_prep_speed__bv_mult']['cached_read_repetitions'] = cached_read_repetitions
+        tests['by_prep_speed__bv_mult']['data_path'] = self.bv_data_path
+        tests['by_prep_speed__bv_mult']['by_routine'] = 'prep_speed'
+        tests['by_prep_speed__bv_mult']['set_bv_orientation'] = 'MULTIPLEXED'
+        tests['by_prep_speed__bv_mult']['conditions'] = []
+        tests['by_prep_speed__bv_mult']['conditions'].append(False)            # not preloaded
+        tests['by_prep_speed__bv_mult']['conditions'].append(True)             # preloaded
+
+        tests['by_prep_speed__bv_vect'] = dict()
+        tests['by_prep_speed__bv_vect']['test_name']= 'Epoch (no preprocessing), Brainvision (vectorized), _load_data_epochs__by_channels__withPrep'
+        tests['by_prep_speed__bv_vect']['uncached_read_repetitions'] = uncached_read_repetitions
+        tests['by_prep_speed__bv_vect']['cached_read_repetitions'] = cached_read_repetitions
+        tests['by_prep_speed__bv_vect']['data_path'] = self.bv_data_path
+        tests['by_prep_speed__bv_vect']['by_routine'] = 'prep_speed'
+        tests['by_prep_speed__bv_vect']['set_bv_orientation'] = 'VECTORIZED'
+        tests['by_prep_speed__bv_vect']['conditions'] = []
+        tests['by_prep_speed__bv_vect']['conditions'].append(False)            # not preloaded
+        tests['by_prep_speed__bv_vect']['conditions'].append(True)             # preloaded
+
+        tests['by_prep_speed__edf'] = dict()
+        tests['by_prep_speed__edf']['test_name']= 'Epoch (no preprocessing), EDF, _load_data_epochs__by_channels__withPrep'
+        tests['by_prep_speed__edf']['uncached_read_repetitions'] = uncached_read_repetitions
+        tests['by_prep_speed__edf']['cached_read_repetitions'] = cached_read_repetitions
+        tests['by_prep_speed__edf']['data_path'] = self.edf_data_path
+        tests['by_prep_speed__edf']['by_routine'] = 'prep_speed'
+        tests['by_prep_speed__edf']['set_bv_orientation'] = ''
+        tests['by_prep_speed__edf']['conditions'] = []
+        tests['by_prep_speed__edf']['conditions'].append(False)            # not preloaded
+        tests['by_prep_speed__edf']['conditions'].append(True)             # preloaded
+
+        tests['by_prep_speed__mef'] = dict()
+        tests['by_prep_speed__mef']['test_name']= 'Epoch (no preprocessing), MEF3, _load_data_epochs__by_channels__withPrep'
+        tests['by_prep_speed__mef']['uncached_read_repetitions'] = uncached_read_repetitions
+        tests['by_prep_speed__mef']['cached_read_repetitions'] = cached_read_repetitions
+        tests['by_prep_speed__mef']['data_path'] = self.mef_data_path
+        tests['by_prep_speed__mef']['by_routine'] = 'prep_speed'
+        tests['by_prep_speed__mef']['set_bv_orientation'] = ''
+        tests['by_prep_speed__mef']['conditions'] = []
+        tests['by_prep_speed__mef']['conditions'].append(False)            # not preloaded
+        tests['by_prep_speed__mef']['conditions'].append(True)             # preloaded
 
 
         # retrieve platform data
@@ -207,7 +294,16 @@ class TestEpochNoPreProcPerf(unittest.TestCase):
                                                             trial_epoch=self.test_trial_epoch,
                                                             baseline_method=baseline_method, baseline_epoch=self.test_baseline_epoch,
                                                             out_of_bound_method=out_of_bound_method)
-                    
+
+                    elif tests[test_name]['by_routine'] in ('prep_mem', 'prep_speed'):
+                        mean, std, ret_range, times = time_func(_load_data_epochs__by_channels__withPrep, clear_virtual_cache, test['uncached_read_repetitions'],
+                                                                False, data_reader, data_reader.channel_names, trial_onsets,
+                                                                trial_epoch=self.test_trial_epoch,
+                                                                baseline_method=baseline_method, baseline_epoch=self.test_baseline_epoch,
+                                                                out_of_bound_method=out_of_bound_method, metric_callbacks=None,
+                                                                high_pass=False, early_reref=None, line_noise_removal=None, late_reref=None,
+                                                                priority='mem' if tests[test_name]['by_routine'] == 'prep_mem' else 'speed')
+
                     data_reader.close()
 
                     print('              Mean: ' + str(round(mean, 2)) + ' - std: ' + str(round(std, 2)) + ' - range: ' + str(round(range[0], 2)) + '-' + str(round(range[1], 2)))
@@ -243,11 +339,20 @@ class TestEpochNoPreProcPerf(unittest.TestCase):
                                                        trial_epoch=self.test_trial_epoch,
                                                        baseline_method=baseline_method, baseline_epoch=self.test_baseline_epoch,
                                                        out_of_bound_method=out_of_bound_method)
+
                     elif tests[test_name]['by_routine'] == 'trials':
                         _load_data_epochs__by_trials(data_reader, data_reader.channel_names, trial_onsets,
                                                      trial_epoch=self.test_trial_epoch,
                                                      baseline_method=baseline_method, baseline_epoch=self.test_baseline_epoch,
                                                      out_of_bound_method=out_of_bound_method)
+
+                    elif tests[test_name]['by_routine'] in ('prep_mem', 'prep_speed'):
+                        _load_data_epochs__by_channels__withPrep(False, data_reader, data_reader.channel_names, trial_onsets,
+                                                                 trial_epoch=self.test_trial_epoch,
+                                                                 baseline_method=baseline_method, baseline_epoch=self.test_baseline_epoch,
+                                                                 out_of_bound_method=out_of_bound_method, metric_callbacks=None,
+                                                                 high_pass=False, early_reref=None, line_noise_removal=None, late_reref=None,
+                                                                 priority='mem' if tests[test_name]['by_routine'] == 'prep_mem' else 'speed')
 
                     # test cached
                     print('          - _load_data_epochs (cached)')
@@ -257,12 +362,23 @@ class TestEpochNoPreProcPerf(unittest.TestCase):
                                                             trial_epoch=self.test_trial_epoch,
                                                             baseline_method=baseline_method, baseline_epoch=self.test_baseline_epoch,
                                                             out_of_bound_method=out_of_bound_method)
+
                     elif tests[test_name]['by_routine'] == 'trials':
                         mean, std, range, times = time_func(_load_data_epochs__by_trials, None, test['cached_read_repetitions'],
                                                             data_reader, data_reader.channel_names, trial_onsets,
                                                             trial_epoch=self.test_trial_epoch,
                                                             baseline_method=baseline_method, baseline_epoch=self.test_baseline_epoch,
                                                             out_of_bound_method=out_of_bound_method)
+
+                    elif tests[test_name]['by_routine'] in ('prep_mem', 'prep_speed'):
+                        mean, std, ret_range, times = time_func(_load_data_epochs__by_channels__withPrep, None, test['cached_read_repetitions'],
+                                                                False, data_reader, data_reader.channel_names, trial_onsets,
+                                                                trial_epoch=self.test_trial_epoch,
+                                                                baseline_method=baseline_method, baseline_epoch=self.test_baseline_epoch,
+                                                                out_of_bound_method=out_of_bound_method, metric_callbacks=None,
+                                                                high_pass=False, early_reref=None, line_noise_removal=None, late_reref=None,
+                                                                priority='mem' if tests[test_name]['by_routine'] == 'prep_mem' else 'speed')
+
                     data_reader.close()
 
                     print('              Mean: ' + str(round(mean, 2)) + ' - std: ' + str(round(std, 2)) + ' - range: ' + str(round(range[0], 2)) + '-' + str(round(range[1], 2)))
@@ -284,7 +400,7 @@ class TestEpochNoPreProcPerf(unittest.TestCase):
             os_text = 'lnx'
         elif platform_info['platform'].lower() == 'darwin':
             os_text = 'mac'
-        output_file = 'results_' + os_text + '__' + datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_file = 'results_epoch_' + os_text + '__' + datetime.now().strftime("%Y%m%d_%H%M%S")
 
         # as pickle
         with open('./' + output_file + '.pdat', 'wb') as output_handle:
