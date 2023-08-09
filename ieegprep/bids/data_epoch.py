@@ -119,23 +119,19 @@ def load_data_epochs(data_path, retrieve_channels, onsets,
         else:
             # no preprocessing required
 
-            if data_reader.data_format in ('bv', 'edf'):
-                # EDF or BrainVision format
-                # TODO: test speeds and depend on preload (not on datatype)
+            if not preload_data and data_reader.data_format == 'bv' and data_reader.bv_hdr['data_orientation'] == 'VECTORIZED':
+                # tests (test_epoch_nonpreproc_perf.py) show that by channels iterations seems faster for non-preloaded Brainvision vectorized data
 
-                # load the data by iterating over the channels and picking out the epochs, for entire preloaded datasets
-                # this is a reasonable options since the data is already in memory
-
+                # load the data by iterating over the channels and picking out the epochs
                 sampling_rate, data = _load_data_epochs__by_channels( data_reader, retrieve_channels, onsets,
                                                                       trial_epoch=trial_epoch,
                                                                       baseline_method=baseline_method, baseline_epoch=baseline_epoch,
                                                                       out_of_bound_method=out_of_bound_method)
 
-            elif data_reader.data_format == 'mef3':
-                # MEF3 format
-                # TODO: test speeds and depend on preload (not on datatype)
+            else:
+                # tests (test_epoch_nonpreproc_perf.py) show that all other read condition benefit from by-trial reading
 
-                # load the data by iterating over the trials, for non-preloaded data this is the most memory efficient (and likely fastest)
+                # load the data by iterating over the trials
                 sampling_rate, data = _load_data_epochs__by_trials(data_reader, retrieve_channels, onsets,
                                                                    trial_epoch=trial_epoch,
                                                                    baseline_method=baseline_method, baseline_epoch=baseline_epoch,
@@ -270,32 +266,14 @@ def load_data_epochs_averages(data_path, retrieve_channels, conditions_onsets,
 
         else:
             # no preprocessing required
+            # tests (test_epoch_nonpreproc_perf.py) show that all read condition benefit from by-trial reading
 
-            if data_reader.data_format in ('bv', 'edf'):
-                # EDF or BrainVision format
-                # TODO: test speeds and depend on preload (not on datatype)
-
-                # Load data epoch averages by first iterating over conditions, then over the channels and then retrieve
-                # and average (metric) over the epoch-trials within the channel-condition combination
-                #
-                # Note:     This method is good if the entire dataset is preloaded in memory. So there is no minimum of loading of data possible.
-                sampling_rate, data, metric_values = _load_data_epoch_averages__by_channel_condition_trial(data_reader, retrieve_channels, conditions_onsets,
-                                                                                                           trial_epoch=trial_epoch,
-                                                                                                           baseline_method=baseline_method, baseline_epoch=baseline_epoch,
-                                                                                                           out_of_bound_method=out_of_bound_method, metric_callbacks=metric_callbacks)
-
-            elif data_reader.data_format == 'mef3':
-                # MEF3 format
-                # TODO: test speeds and depend on preload (not on datatype)
-
-                # load the data by first iterating over conditions, second over trials within that condition and then
-                # retrieve the epoch-data for all channels and take average (and metric) for each channel.
-                #
-                # For MEF3 this is the fastest solution while using a small amount of memory (because only the required data is loaded)
-                sampling_rate, data, metric_values = _load_data_epoch_averages__by_condition_trials(data_reader, retrieve_channels, conditions_onsets,
-                                                                                                    trial_epoch=trial_epoch,
-                                                                                                    baseline_method=baseline_method, baseline_epoch=baseline_epoch,
-                                                                                                    out_of_bound_method=out_of_bound_method, metric_callbacks=metric_callbacks)
+            # load the data by first iterating over conditions, second over trials within that condition and then
+            # retrieve the epoch-data for all channels and take average (and metric) for each channel.
+            sampling_rate, data, metric_values = _load_data_epoch_averages__by_condition_trials(data_reader, retrieve_channels, conditions_onsets,
+                                                                                                trial_epoch=trial_epoch,
+                                                                                                baseline_method=baseline_method, baseline_epoch=baseline_epoch,
+                                                                                                out_of_bound_method=out_of_bound_method, metric_callbacks=metric_callbacks)
 
     except Exception as e:
         logging.error('Error on loading, epoching and averaging data: ' + str(e))
@@ -486,12 +464,6 @@ def _load_data_epochs__by_channels(data_reader, retrieve_channels,
     Load data epochs to a matrix (format: channel x trials/epochs x time) by iterating over and loading data per channel
     and retrieving the trial-epochs
 
-    Note:   Since this method retrieves the data of a single channel before extracting the epochs, it is reasonably memory
-            efficient. It is well suited when the entire dataset is pre-loaded in memory anyway. However,
-            when the entire set is not in memory, epoching can be performed even more memory efficient using
-            the '_load_data_epochs__by_trials' method (which should be equally fast or even faster)
-            # TODO: test speeds
-
     Args:
         data_reader (IeegDataReader):       An instance of the IeegDataReader to retrieve metadata and channel data
         retrieve_channels (list or tuple):  The channels (by name) of which the data should be retrieved, the output
@@ -537,11 +509,6 @@ def _load_data_epochs__by_trials(data_reader, retrieve_channels,
     """
     Load data epochs to a matrix (format: channel x trials/epochs x time) by looping over and loading data per
     trial (for all channels) and retrieving the trial data by iterating over each of the channels
-
-    Note:   Especially when the entire set is not held in memory this is the most memory efficient because only the
-            minimum amount of data is loaded into memory, which could also be faster because less data is read from the disk.
-            When the entire dataset is first loaded in memory then there no benefit
-            # TODO: test speeds
 
     Args:
         data_reader (IeegDataReader):       An instance of the IeegDataReader to retrieve metadata and channel data
@@ -662,12 +629,7 @@ def _load_data_epoch_averages__by_condition_trials(data_reader, retrieve_channel
     the trials within a condition and then load the data per condition-trial (for all channels) and perform
     averaging (and metric calculation) by iterating over each of the channels
 
-    Note:   When the entire dataset is not preloaded this is the fastest solution while using a small amount of
-            memory (because only the required data is loaded). The '_load_data_epoch_averages__by_channel_condition_trial' is
-            even more memory efficient but slower for MEF3. For preloaded data there is not much difference because the
-            whole set is load to memory first, so just numpy-views are returned and used.
-            # TODO: test speeds
-    Note2:  only an option when at no point the full channel data is needed (e.g. cannot be used when high-pass filtering is required)
+    Note: only an option when at no point the full channel data is needed (e.g. cannot be used when high-pass filtering is required)
     """
 
 
@@ -1211,11 +1173,6 @@ def _load_data_epoch_averages__by_channel_condition_trial(data_reader, channels,
     conditions and then within that channel-condition combination loop over each of the trials to load the specific
     channel-condition-trial data. The averaging (and metric calculation) is performed on a temporary matrix in the
     channel loop
-
-    Note:     This function is even more memory efficient than '_load_data_epoch_averages__by_condition_trials', but
-              slower when the entire dataset is not pre-loaded. For pre-loaded datasets there is not much difference because
-              the whole set is loaded to memory first, so just numpy-views are returned and used.
-              # TODO: retest speeds
     """
 
     # calculate the size of the time dimension (in samples)
@@ -1275,11 +1232,6 @@ def _load_data_epochs__by_channels__withPrep(average, data_reader, retrieve_chan
     In addition, an optimized parameter can be set to either 'mem' or 'speed'; 'mem' will unload the channel inbetween
     processing steps, making the process slower but most memory efficient; 'speed' will keep the channel data in memory
     throughout the processing, allowing for more speed but also requiring more memory.
-
-
-    Note:   Note that for preloaded datasets, preprocessing will require a copy of the channel data for manipulation, so
-            there is no memory benefit in the fact that the entire dataset is loaded into memory first.
-            # TODO: retest speeds
 
     Args:
         average (boolean):                  Whether, after preprocessing, only epochs (False) should be extracted and
