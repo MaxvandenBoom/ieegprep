@@ -1,26 +1,23 @@
 %
-% Script to visualize the performances of the different epoch routines on the file format readers
+% Script to visualize the performances of the different epoch (& average) routines for different file formats
 %
 
-%{
-% epoch
-load('D:\BIDS_erdetect\fileio_results\results_epoch_win7__20230726_080359.mat');
-test_formats = {'BrainVision (multiplexed)', 'bv_multiplexed'; ...
-                'BrainVision (vectorized)', 'bv_vectorized'; ...
+load('D:\BIDS_erdetect\fileio_results\results_epoch_win11__20230809_122713__2.mat');
+test_formats = {'BrainVision (multiplexed)', 'bv_mult'; ...
+                'BrainVision (vectorized)', 'bv_vect'; ...
                 'EDF', 'edf'; ...
                 'MEF3', 'mef'};
-test_functions = {'by_channels', 'by_trials'};
-%}
+test_functions = {'by_channels', 'by_trials', 'by_prep_mem', 'by_prep_speed'};
 
-
-% epoch average
-load('D:\BIDS_erdetect\fileio_results\results_epochAverage_win7__20230807_054418.mat');
+%{
+% epoch & average
+load('D:\BIDS_erdetect\fileio_results\results_epoch_averages_win11__20230808_90723__10.mat');
 test_formats = {'BrainVision (multiplexed)', 'bv_mult'; ...
                 'BrainVision (vectorized)', 'bv_vect'; ...
                 'EDF', 'edf'; ...
                 'MEF3', 'mef'};
 test_functions = {'by_ch_cond_trial', 'by_cond_trials', 'by_prep_mem', 'by_prep_speed'};
-
+%}
 
 %%
 
