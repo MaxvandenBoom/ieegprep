@@ -95,7 +95,6 @@ data_respCh01_stimCh02_03 = epochs[1, 4, :]
   - PyMef by Jan Cimbalnik, Matt Stead, Ben Brinkmann, and Dan Crepeau (https://github.com/msel-source/pymef)
   - NumPy
   - SciPy
-  - Pandas
   - psutil
 - The new EDF and BrainVision readers are in part adaptations of the Fieldtrip code (by Robert Robert Oostenveld) and replicate some of the header logic from the MNE package (by Teon Brooks, Stefan Appelhoff and others)  
   
