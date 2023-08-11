@@ -14,7 +14,6 @@ import gc
 import logging
 import warnings
 import numpy as np
-from scipy import signal
 
 from ieegprep.fileio.IeegDataReader import IeegDataReader, VALID_FORMAT_EXTENSIONS
 from ieegprep.utils.misc import allocate_array
@@ -1249,6 +1248,10 @@ def _load_data_epochs__by_channels__withPrep(average, data_reader, retrieve_chan
                                             the onsets of the trials that belong to each condition. (format: conditions x condition onsets)
     """
 
+    # Note: scipy is a pretty elaborate package (causing a significant, 100ms+ time to import uncached) and
+    #       is only needed with pre-processing, therefore import local instead of top of the module
+    from scipy.signal import butter, iirnotch, filtfilt
+
     # if baselining and late re-ref channel selection based on variance is enabled, make sure the baseline epoch is
     # included in the trial epoch. This way the common average (which is calculated over the trial epoch) can be applied
     # to both the baseline epoch and the trial epoch
@@ -1375,9 +1378,9 @@ def _load_data_epochs__by_channels__withPrep(average, data_reader, retrieve_chan
     
         filtOrder, cut_freq = signal.buttord(norm_pass_freq, norm_stop_freq, pass_ripple, stop_atten, True)
     
-        # sos = signal.butter(order, normal_cutoff, btype='highpass', analog=False, output='sos', fs=fs)
-        #[filtZeros, filtPoles, filtGains] = signal.butter(2, 2.745120377767732e-04, 'high', output='zpk')
-        [filtZeros, filtPoles, filtGains] = signal.butter(2, 2.745120377767732e-04, 'high', output='zpk', fs=fs)
+        # sos = butter(order, normal_cutoff, btype='highpass', analog=False, output='sos', fs=fs)
+        #[filtZeros, filtPoles, filtGains] = butter(2, 2.745120377767732e-04, 'high', output='zpk')
+        [filtZeros, filtPoles, filtGains] = butter(2, 2.745120377767732e-04, 'high', output='zpk', fs=fs)
         
         [filtSos] = signal.zpk2sos(filtZeros, filtPoles, filtGains)
         gain = filtGains
@@ -1387,10 +1390,10 @@ def _load_data_epochs__by_channels__withPrep(average, data_reader, retrieve_chan
         cut_freq = pass_freq / (data_reader.sampling_rate / 2)
 
         # design a butterworth filter and get the filter coefficients (numerator / denominator (‘ba’)
-        hp_numerator, hp_denominator = signal.butter(order, cut_freq, btype='highpass', analog=False, output='ba', fs=fs)
+        hp_numerator, hp_denominator = butter(order, cut_freq, btype='highpass', analog=False, output='ba', fs=fs)
         # TODO: the 'ba' or 'sos' returned by butter differ from what matlab gives
 
-        #sos = signal.butter(order, normal_cutoff, btype='highpass', analog=False, output='sos', fs=fs)
+        #sos = butter(order, normal_cutoff, btype='highpass', analog=False, output='sos', fs=fs)
         #sos2 = [[1, -2, 1, 1, -1.998780375302085, 0.998781118591159]]  # taken from matlab
         #print(sos)
 
@@ -1398,7 +1401,7 @@ def _load_data_epochs__by_channels__withPrep(average, data_reader, retrieve_chan
     if line_noise_removal is not None:
 
         # design a notch filter and get the filter coefficients (numerator / denominator (‘ba’)
-        lnr_numerator, lnr_denominator = signal.iirnotch(line_noise_removal, 30.0, data_reader.sampling_rate)
+        lnr_numerator, lnr_denominator = iirnotch(line_noise_removal, 30.0, data_reader.sampling_rate)
 
 
     #
@@ -1493,13 +1496,13 @@ def _load_data_epochs__by_channels__withPrep(average, data_reader, retrieve_chan
                     #print(channel + ": HP")
 
                     # Filter the data
-                    channel_data[channel] = signal.filtfilt(hp_numerator, hp_denominator, channel_data[channel], padtype='odd', padlen=3 * (max(len(hp_numerator), len(hp_denominator)) - 1))
+                    channel_data[channel] = filtfilt(hp_numerator, hp_denominator, channel_data[channel], padtype='odd', padlen=3 * (max(len(hp_numerator), len(hp_denominator)) - 1))
 
                     # TODO: more exact translation from matlab
                     #       sosfiltfilt (so with sos) returns different values on the same data
-                    #y = signal.filtfilt(sos, gain, channel_data[channel])
-                    #y = signal.filtfilt(hp_numerator, hp_denominator, channel_data[channel])
-                    #y = signal.filtfilt(hp_numerator, hp_denominator, channel_data[channel], padtype='odd', padlen=3 * (max(len(b), len(a)) - 1))
+                    #y = filtfilt(sos, gain, channel_data[channel])
+                    #y = filtfilt(hp_numerator, hp_denominator, channel_data[channel])
+                    #y = filtfilt(hp_numerator, hp_denominator, channel_data[channel], padtype='odd', padlen=3 * (max(len(b), len(a)) - 1))
                     #y2 = signal.sosfiltfilt(sos2, channel_data[channel], padtype=None)
                     #python padlength = 3 * (2 * len(sos) + 1 - min((sos[:, 2] == 0).sum(), (sos[:, 5] == 0).sum()))
                     #print(y[1:10])
@@ -1650,7 +1653,7 @@ def _load_data_epochs__by_channels__withPrep(average, data_reader, retrieve_chan
                     #print(channel + ": LNR - " + str(line_noise_removal))
 
                     # Filter the data
-                    channel_data[channel] = signal.filtfilt(lnr_numerator, lnr_denominator, channel_data[channel], padtype='odd', padlen=3 * (max(len(lnr_numerator), len(lnr_denominator)) - 1))
+                    channel_data[channel] = filtfilt(lnr_numerator, lnr_denominator, channel_data[channel], padtype='odd', padlen=3 * (max(len(lnr_numerator), len(lnr_denominator)) - 1))
 
                     # set line noise removal to have been applied to the channel-data in memory
                     channel_lnr_applied[channel] = True
