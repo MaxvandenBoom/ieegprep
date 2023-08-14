@@ -475,7 +475,8 @@ def _load_data_epochs__by_channels(data_reader, retrieve_channels,
 
     # initialize a data buffer (channel x trials/epochs x time)
     try:
-        data = allocate_array((len(retrieve_channels), len(onsets), trial_num_samples))
+        data = allocate_array((len(retrieve_channels), len(onsets), trial_num_samples),
+                              fill_value=np.nan, dtype=np.float64)
     except MemoryError:
         raise MemoryError('Not enough memory create a data output matrix')
 
@@ -521,7 +522,8 @@ def _load_data_epochs__by_trials(data_reader, retrieve_channels,
 
     # initialize a data buffer (channel x trials/epochs x time)
     try:
-        data = allocate_array((len(retrieve_channels), len(onsets), trial_num_samples))
+        data = allocate_array((len(retrieve_channels), len(onsets), trial_num_samples),
+                              fill_value=np.nan, dtype=np.float64)
     except MemoryError:
         raise MemoryError('Not enough memory create a data output matrix')
 
@@ -638,7 +640,8 @@ def _load_data_epoch_averages__by_condition_trials(data_reader, retrieve_channel
 
     # initialize a data buffer (channel x conditions x samples)
     try:
-        data = allocate_array((len(retrieve_channels), len(conditions_onsets), trial_num_samples))
+        data = allocate_array((len(retrieve_channels), len(conditions_onsets), trial_num_samples),
+                              fill_value=np.nan, dtype=np.float64)
     except MemoryError:
         raise MemoryError('Not enough memory create a data output matrix')
 
@@ -647,9 +650,11 @@ def _load_data_epoch_averages__by_condition_trials(data_reader, retrieve_channel
         metric_values = None
         if metric_callbacks is not None:
             if callable(metric_callbacks):
-                metric_values = allocate_array((len(retrieve_channels), len(conditions_onsets)))
+                metric_values = allocate_array((len(retrieve_channels), len(conditions_onsets)),
+                                               fill_value=np.nan, dtype=np.float64)
             elif type(metric_callbacks) is tuple and len(metric_callbacks) > 0:
-                metric_values = allocate_array((len(retrieve_channels), len(conditions_onsets), len(metric_callbacks)))
+                metric_values = allocate_array((len(retrieve_channels), len(conditions_onsets), len(metric_callbacks)),
+                                               fill_value=np.nan, dtype=np.float64)
     except MemoryError:
         raise MemoryError('Not enough memory create metric output matrix')
 
@@ -661,7 +666,8 @@ def _load_data_epoch_averages__by_condition_trials(data_reader, retrieve_channel
 
         # initialize a buffer to put all the data for this condition in (channels x trials x samples)
         try:
-            condition_data = allocate_array((len(retrieve_channels), len(conditions_onsets[condition_idx]), trial_num_samples))
+            condition_data = allocate_array((len(retrieve_channels), len(conditions_onsets[condition_idx]), trial_num_samples),
+                                            fill_value=np.nan, dtype=np.float64)
         except MemoryError:
             raise MemoryError('Not enough memory create an condition-data matrix')
 
@@ -672,7 +678,8 @@ def _load_data_epoch_averages__by_condition_trials(data_reader, retrieve_channel
         baseline_data = None
         if not baseline_method == 0 and metric_callbacks is not None:
             try:
-                baseline_data = allocate_array((len(retrieve_channels), len(conditions_onsets[condition_idx]), baseline_num_samples))
+                baseline_data = allocate_array((len(retrieve_channels), len(conditions_onsets[condition_idx]), baseline_num_samples),
+                                               fill_value=np.nan, dtype=np.float64)
             except MemoryError:
                 raise MemoryError('Not enough memory create temporary baseline-data matrix')
 
@@ -915,9 +922,11 @@ def __subload_data_epoch_averages__from_channel__by_condition_trials(ref_data, r
         # initialize a buffer to put all the channel's epoch data for this condition in (trials x samples)
         # and
         try:
-            condition_epoch_data = allocate_array((len(conditions_onsets[condition_idx]), trial_num_samples))
+            condition_epoch_data = allocate_array((len(conditions_onsets[condition_idx]), trial_num_samples),
+                                                  fill_value=np.nan, dtype=np.float64)
             if var_epoch is not None:
-                condition_trial_variances = allocate_array(len(conditions_onsets[condition_idx]))
+                condition_trial_variances = allocate_array(len(conditions_onsets[condition_idx]),
+                                                           fill_value=np.nan, dtype=np.float64)
         except MemoryError:
             raise MemoryError('Not enough memory to create a temporary data matrix')
 
@@ -929,7 +938,8 @@ def __subload_data_epoch_averages__from_channel__by_condition_trials(ref_data, r
         baseline_data = None
         if baseline_method > 0 and metric_callbacks is not None:
             try:
-                baseline_data = allocate_array((len(conditions_onsets[condition_idx]), baseline_num_samples))
+                baseline_data = allocate_array((len(conditions_onsets[condition_idx]), baseline_num_samples),
+                                               fill_value=np.nan, dtype=np.float64)
             except MemoryError:
                 raise MemoryError('Not enough memory to create a temporary condition-channel baseline data matrix')
 
@@ -1180,7 +1190,8 @@ def _load_data_epoch_averages__by_channel_condition_trial(data_reader, channels,
 
     # initialize a data buffer (channel x conditions x samples)
     try:
-        data = allocate_array((len(channels), len(conditions_onsets), trial_num_samples))
+        data = allocate_array((len(channels), len(conditions_onsets), trial_num_samples),
+                              fill_value=np.nan, dtype=np.float64)
     except MemoryError:
         raise MemoryError('Not enough memory create a data output matrix')
 
@@ -1189,9 +1200,11 @@ def _load_data_epoch_averages__by_channel_condition_trial(data_reader, channels,
         metric_values = None
         if metric_callbacks is not None:
             if callable(metric_callbacks):
-                metric_values = allocate_array((len(channels), len(conditions_onsets)))
+                metric_values = allocate_array((len(channels), len(conditions_onsets)),
+                                               fill_value=np.nan, dtype=np.float64)
             elif type(metric_callbacks) is tuple and len(metric_callbacks) > 0:
-                metric_values = allocate_array((len(channels), len(conditions_onsets), len(metric_callbacks)))
+                metric_values = allocate_array((len(channels), len(conditions_onsets), len(metric_callbacks)),
+                                               fill_value=np.nan, dtype=np.float64)
     except MemoryError:
         raise MemoryError('Not enough memory create a metric output matrix')
 
@@ -1271,7 +1284,8 @@ def _load_data_epochs__by_channels__withPrep(average, data_reader, retrieve_chan
 
     # initialize a data buffer (channel x trials/epochs x time)
     try:
-        data = allocate_array((len(retrieve_channels), len(onsets), trial_num_samples))
+        data = allocate_array((len(retrieve_channels), len(onsets), trial_num_samples),
+                              fill_value=np.nan, dtype=np.float64)
     except MemoryError:
         raise MemoryError('Not enough memory create a data output matrix')
 
@@ -1281,9 +1295,11 @@ def _load_data_epochs__by_channels__withPrep(average, data_reader, retrieve_chan
             metric_values = None
             if metric_callbacks is not None:
                 if callable(metric_callbacks):
-                    metric_values = allocate_array((len(retrieve_channels), len(onsets)))
+                    metric_values = allocate_array((len(retrieve_channels), len(onsets)),
+                                                   fill_value=np.nan, dtype=np.float64)
                 elif type(metric_callbacks) is tuple and len(metric_callbacks) > 0:
-                    metric_values = allocate_array((len(retrieve_channels), len(onsets), len(metric_callbacks)))
+                    metric_values = allocate_array((len(retrieve_channels), len(onsets), len(metric_callbacks)),
+                                                   fill_value=np.nan, dtype=np.float64)
         except MemoryError:
             raise MemoryError('Not enough memory create a metric output matrix')
 
@@ -1739,8 +1755,9 @@ def _load_data_epochs__by_channels__withPrep(average, data_reader, retrieve_chan
 
                                         # TODO: maybe improve
                                         # Note: deliberately make this array larger so that the index of the channels in the 'data' variable and the 'late_group_data[str(group)]' variable can match
-                                        late_group_data[str(group)] = allocate_array((len(retrieve_channels), len(onsets)))
-                                        #late_group_data[str(group)] = allocate_array((len(late_reref.groups[group]), len(onsets)))
+                                        late_group_data[str(group)] = allocate_array((len(retrieve_channels), len(onsets)),
+                                                                                     fill_value=np.nan, dtype=np.float64)
+                                        #late_group_data[str(group)] = allocate_array((len(late_reref.groups[group]), len(onsets)), fill_value=np.nan, dtype=np.float64)
 
 
                                     # Note 1: 'data' will hold the averages to be used to the common averages per channel per condition later, after the
@@ -1790,7 +1807,8 @@ def _load_data_epochs__by_channels__withPrep(average, data_reader, retrieve_chan
                                         variance_threshold_per_condition = np.nanquantile(late_group_data[str(group)], late_reref.late_group_reselect_varPerc, axis=0)
 
                                         # create a matrix to hold the trial epoch common average for each condition
-                                        group_CAR_per_condition = allocate_array((len(onsets), trial_num_samples))
+                                        group_CAR_per_condition = allocate_array((len(onsets), trial_num_samples),
+                                                                                 fill_value=np.nan, dtype=np.float64)
 
                                         # loop over the conditions
                                         for condition_index in range(late_group_data[str(group)].shape[1]):

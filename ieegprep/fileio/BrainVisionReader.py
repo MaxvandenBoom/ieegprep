@@ -18,7 +18,7 @@ import logging
 import numpy as np
 from configparser import ConfigParser
 from .IeegDataReader import IeegDataReader
-from ieegprep.utils.misc import allocate_array
+#from ieegprep.utils.misc import allocate_array
 
 DEFAULT_CHUNK_SIZE_MB = 10          # the default chunk size (in MB)
 
