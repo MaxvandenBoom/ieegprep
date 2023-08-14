@@ -10,13 +10,12 @@ You should have received a copy of the GNU General Public License along with thi
 """
 import os
 import logging
-import numpy as np
 import time
 import subprocess
 from ieegprep.utils.console import ConsoleColors
 
 
-def allocate_array(dimensions, fill_value=np.nan, dtype=np.float64):
+def allocate_array(dimensions, fill_value=float('nan'), dtype=float):
     """
     Create and immediately allocate the memory for an x-dimensional array
 
@@ -32,6 +31,11 @@ def allocate_array(dimensions, fill_value=np.nan, dtype=np.float64):
         data (ndarray):             An initialized x-dimensional array, or None if insufficient memory available
 
     """
+
+    # Note: numpy is a pretty elaborate package (causing a significant, 80ms+ time to import uncached) and since this
+    #       module offers non-numpy miscellaneous functions to be used, we import local instead of top of the module
+    import numpy as np
+
     # initialize a data buffer
     mem = None
     try:
@@ -103,6 +107,11 @@ def time_func(fun, pre_fun = None, loop = 5, *args, **kwargs):
         times (nparray):            All result values
 
     """
+
+    # Note: numpy is a pretty elaborate package (causing a significant, 80ms+ time to import uncached) and since this
+    #       module offers non-numpy miscellaneous functions to be used, we import local instead of top of the module
+    import numpy as np
+
     if loop < 1:
         loop = 1
     times = np.zeros(loop)
