@@ -149,7 +149,7 @@ class RerefStruct:
 
         return all_groups
 
-    def set_exclude_reref_epochs(self, exclude_onsets, exclude_epoch=(-1.0, 2.0), split_channel_names=None):
+    def set_exclude_reref_epochs(self, exclude_onsets, exclude_epoch=(-1.0, 2.0), channel_key_seperator=None):
         """
         Set channel-epochs that should be excluded from re-referencing
         (this can be used when electrical stimulation was performed on specific channels at specific moments in the data)
@@ -160,37 +160,41 @@ class RerefStruct:
                                                 of each entry in the dictionary represents the channel-name of which
                                                 epochs should be excluded, and the value of the entry a list of
                                                 onsets (in time) that needs to be excluded for that channel.
-                                                A window around each onset - as defined by epoch - will define what
-                                                will be excluded from re-referencing
+                                                A window around each onset - as defined by the exclude_epoch argument -
+                                                will define what will be excluded from re-referencing
             exclude_epoch (tuple):              The time-span that will be excluded around each onset in the
                                                 channel-data. Expressed as a tuple with the start- and end-point in
                                                 seconds relative to the onset (e.g. the standard tuple of '-1, 3' will
                                                 exclude the signal in the period from 1s before the onset to 3s after
                                                 onset).
-            split_channel_names (str):          The channel-names to exclude ('exclude_onsets argument' keys) can actually
-                                                consist of two channel names (which is the case for stimulated electrode
-                                                pairs; e.g. a key could be 'Ch01-Ch02', where actually the onsets to
-                                                exclude apply to both channel Ch01 and Ch02). If set, this arguments
-                                                indicates on which character to split the channel-names (key) before
-                                                adding the onsets to each of the separate channel-names to exclude.
+            channel_key_seperator (str):        The keys in 'exclude_onsets' dictionary argument above can refer to
+                                                single channels or to stim-pairs. If this argument here is set to None, then
+                                                single channels are assumed in the 'exclude_onsets' argument. If this
+                                                argument is set to a string, then the keys in the 'exclude_onsets' argument
+                                                refer to stimulation pairs and this argument indicates on which character
+                                                to split the two channel-names (key). After splitting each key into two
+                                                channels, an exclusion epoch around the onsets for both separate channels
+                                                is set (e.g. a key could be 'Ch01-Ch02', where actually the onsets to
+                                                exclude apply to both channel Ch01 and Ch02).
         """
 
         # for each channel store the epoch windows which should be excluded from re-referencing
         self.channel_exclude_epochs = dict()
         for channel, onsets in exclude_onsets.items():
 
-            if split_channel_names is None:
-                # exclude_onsets dictionary keys are simply the channel-names
+            if channel_key_seperator is None:
+                # the exclude_onsets dictionary keys refer to single channels
 
                 self.channel_exclude_epochs[channel] = list()
                 for onset in onsets:
                     self.channel_exclude_epochs[channel].append((onset + exclude_epoch[0], onset + exclude_epoch[1]))
 
             else:
-                # exclude_onsets dictionary keys indicate multiple channel-names
+                # the exclude_onsets dictionary keys refer to stim-pairs, where
+                # exclusion should be applied to both channels
 
                 # separate the key into the separate channel-names
-                split_channels = channel.split(split_channel_names)
+                split_channels = channel.split(channel_key_seperator)
                 for sub_channel in split_channels:
 
                     # make sure the (sub) channel-name exists to hold exclusion epoch windows
@@ -199,4 +203,3 @@ class RerefStruct:
 
                     for onset in onsets:
                         self.channel_exclude_epochs[sub_channel].append((onset + exclude_epoch[0], onset + exclude_epoch[1]))
-
