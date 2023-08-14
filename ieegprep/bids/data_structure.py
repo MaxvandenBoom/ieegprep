@@ -14,7 +14,7 @@ import re
 import posixpath
 import fnmatch
 import logging
-from ieegprep.fileio import VALID_FORMAT_EXTENSIONS
+from ieegprep.fileio.IeegDataReader import VALID_FORMAT_EXTENSIONS
 
 
 def list_bids_datasets(bids_search_directory, dataset_extensions=None, subjects_filter=None, subset_search_pattern=None, strict_search=False, only_subjects_with_subsets=False):
