@@ -15,7 +15,7 @@ from datetime import datetime
 from ieegprep.utils.console import ConsoleColors
 from ieegprep.utils.misc import time_func, clear_virtual_cache
 from ieegprep.bids.data_epoch import _prepare_input, _load_data_epoch_averages__by_channel_condition_trial, _load_data_epoch_averages__by_condition_trials, _load_data_epochs__by_channels__withPrep
-from ieegprep.bids.sidecars import load_stim_event_info
+from ieegprep.bids.sidecars import load_elec_stim_events
 
 
 class TestEpochAverageNoPreProcPerf(unittest.TestCase):
@@ -247,20 +247,9 @@ class TestEpochAverageNoPreProcPerf(unittest.TestCase):
             tests[test_name]['cond_epoch_results_uncached'] = []
             tests[test_name]['cond_epoch_results_cached'] = []
 
-            # load the stim trial onsets
-            trial_onsets, trial_pairs, _ = load_stim_event_info(tests[test_name]['data_path'][0:tests[test_name]['data_path'].rindex("_ieeg")] + '_events.tsv')
-
-            # extract conditions
-            conditions_onsets = dict()
-            for trial_index in range(len(trial_pairs)):
-                trial_pair = trial_pairs[trial_index]
-                if (trial_pair[1] + '-' + trial_pair[0]) in conditions_onsets.keys():
-                    conditions_onsets[trial_pair[1] + '-' + trial_pair[0]].append(trial_onsets[trial_index])
-                if (trial_pair[0] + '-' + trial_pair[1]) in conditions_onsets.keys():
-                    conditions_onsets[trial_pair[0] + '-' + trial_pair[1]].append(trial_onsets[trial_index])
-                else:
-                    conditions_onsets[trial_pair[0] + '-' + trial_pair[1]] = [trial_onsets[trial_index]]
-            conditions_onsets = list(conditions_onsets.values())
+            # load the trial onsets for each of the stimulation conditions
+            _, _, conditions_onsets, _ = load_elec_stim_events(tests[test_name]['data_path'][0:tests[test_name]['data_path'].rindex("_ieeg")] + '_events.tsv',
+                                                                                    concat_bidirectional_stimpairs=True)
 
             # loop over the conditions
             for preload_condition in test['conditions']:

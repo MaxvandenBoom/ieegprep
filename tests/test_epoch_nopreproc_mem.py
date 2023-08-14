@@ -13,7 +13,7 @@ import os
 import sys
 import unittest
 from ieegprep.bids.data_epoch import _prepare_input, _load_data_epochs__by_channels, _load_data_epochs__by_trials, _load_data_epochs__by_channels__withPrep
-from ieegprep.bids.sidecars import load_stim_event_info
+from ieegprep.bids.sidecars import load_elec_stim_events
 from ieegprep.utils.console import ConsoleColors
 from ieegprep.utils.misc import clear_virtual_cache
 from memory_profiler import memory_usage, profile
@@ -230,7 +230,7 @@ class TestEpochNoPreProcMem(unittest.TestCase):
 
         #
         clear_virtual_cache()
-        trial_onsets, _, _ = load_stim_event_info(data_path[0:data_path.rindex('_ieeg')] + '_events.tsv')
+        trial_onsets, _, _, _ = load_elec_stim_events(data_path[0:data_path.rindex('_ieeg')] + '_events.tsv')
 
         #
         if set_bv_orientation is None:

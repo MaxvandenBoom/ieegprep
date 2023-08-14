@@ -64,28 +64,39 @@ def load_event_info(filepath, addition_required_columns=None):
         raise FileNotFoundError('Could not find file')
 
 
-def load_stim_event_info(filepath, additional_required_columns=None):
+def load_elec_stim_events(filepath, additional_required_columns=None, exclude_bad_events=True,
+                          concat_bidirectional_stimpairs=True, only_stimpairs_between_channels=None):
     """
     Retrieve the electrical stimulation events from a _events.tsv file
 
     Args:
-        filepath (str):                           The path to the _events.tsv file to load
-        additional_required_columns(list/tuple):  One or multiple additional columns that need to be present in the _events.tsv
+        filepath (str):                              The path to the _events.tsv file to load
+        additional_required_columns(list/tuple):     One or multiple additional columns that need to be present in the _events.tsv
+        exclude_bad_events (bool):                   Whether to exclude events marked as 'bad' (only applied if a status column is present)
+        concat_bidirectional_stimpairs (bool):       Whether to concatenate events that concern the same two stimulation
+                                                     electrodes. If true, stimulation events between - for example - Ch01 and
+                                                     Ch02 will be concatenated with stimulation events between Ch02 and Ch01.
+        only_stimpairs_between_channels(tuple/list): Only include stimulated pairs when both stimulated electrodes are included
+                                                     in this (list/tuple) argument. Set to None to include all pairs.
 
     Returns:
-        trial_onsets (list)                       A list with the onsets of the stimulus events
-        trial_pairs (list)                        A list with the stim-pair names of each stimulus events
-        trials_bad_onsets                         If a status column exists in the events file, this list holds the onsets
-                                                  of the trials that were marked as 'bad' and not included
+        trial_onsets (list)                          A list with the onsets of the stimulus events
+        trial_pairs (list)                           A list with the stim-pair names of each stimulus events
+        stimpair_onsets (dict)                       A dictionary that holds the onsets for each distinct stimulated electrode
+                                                     pair. Each stimulated pair is an entry (e.g. Ch01-Ch02), and each entry
+                                                     contains the corresponding onsets times as a list.
+        bad_trial_onsets                             If a status column exists in the events file, this list holds the onsets
+                                                     of the trials that were marked as 'bad' and not included
 
     Raises:
-        RuntimeError:                             If the file could not be found, or if the mandatory 'onset', 'trial_type',
-                                                  'electrical_stimulation_site' column or any of the required additional
-                                                   columns could not be found
+        RuntimeError:                                If the file could not be found, or if the mandatory 'onset', 'trial_type',
+                                                     'electrical_stimulation_site' column or any of the required additional
+                                                     columns could not be found
 
     Note:   This function expects the column 'trial_type' and 'electrical_stimulation_site' to exist in the _events.tsv file
-            according to the BIDS iEEG electrical stimulation specification.
-    Note 2: If a column status exists in the _events.tsv file, then these trials marked as 'bad' will be excluded
+            according to the BIDS iEEG electrical stimulation specification. Events of which the 'trial_type' are labelled
+            as 'electrical_stimulation' are regarded as electrical stimulation events. The 'electrical_stimulation_site' of
+            each stimulation event should indicate the stimulated electrodes separated by a dash, as such: Ch01-Ch02.
 
     """
 
@@ -105,7 +116,7 @@ def load_stim_event_info(filepath, additional_required_columns=None):
     # acquire the onset and electrode-pair for each stimulation
     trial_onsets = []
     trial_pairs = []
-    trials_bad_onsets = []
+    bad_trial_onsets = []
     trials_have_status = 'status' in events_tsv.columns
     for index, row in events_tsv.iterrows():
         if row['trial_type'].lower() == 'electrical_stimulation':
@@ -113,9 +124,9 @@ def load_stim_event_info(filepath, additional_required_columns=None):
                 logging.warning('Invalid onset \'' + row['onset'] + '\' in events, should be a numeric value >= 0. Discarding trial...')
                 continue
 
-            if trials_have_status:
+            if exclude_bad_events and trials_have_status:
                 if not row['status'].lower() == 'good':
-                    trials_bad_onsets.append(row['onset'])
+                    bad_trial_onsets.append(row['onset'])
                     continue
 
             pair = row['electrical_stimulation_site'].split('-')
@@ -126,7 +137,51 @@ def load_stim_event_info(filepath, additional_required_columns=None):
             trial_onsets.append(float(row['onset']))
             trial_pairs.append(pair)
 
-    return trial_onsets, trial_pairs, trials_bad_onsets
+
+    # dictionary to hold the stimulated electrode pairs and their onsets
+    stimpairs_onsets = dict()
+
+    #
+    if only_stimpairs_between_channels is None:
+        # include all stim-pairs
+
+        for trial_index in range(len(trial_pairs)):
+            trial_pair = trial_pairs[trial_index]
+            if concat_bidirectional_stimpairs and (trial_pair[1] + '-' + trial_pair[0]) in stimpairs_onsets.keys():
+                stimpairs_onsets[trial_pair[1] + '-' + trial_pair[0]].append(trial_onsets[trial_index])
+            else:
+                if (trial_pair[0] + '-' + trial_pair[1]) in stimpairs_onsets.keys():
+                    stimpairs_onsets[trial_pair[0] + '-' + trial_pair[1]].append(trial_onsets[trial_index])
+                else:
+                    stimpairs_onsets[trial_pair[0] + '-' + trial_pair[1]] = [trial_onsets[trial_index]]
+
+    else:
+
+        # loop over all the combinations of included channels
+        # Note:     only the combinations of stim-pairs that actually have events/trials end up in the output
+        for iChannel0 in range(len(only_stimpairs_between_channels)):
+            for iChannel1 in range(len(only_stimpairs_between_channels)):
+
+                # retrieve the indices of all the trials that concern this stim-pair
+                indices = []
+                if concat_bidirectional_stimpairs:
+                    # allow concatenation of bidirectional pairs, pair order does not matter
+                    if not iChannel1 < iChannel0:
+                        # unique pairs while ignoring pair order
+                        indices = [i for i, x in enumerate(trial_pairs) if
+                                   (x[0] == only_stimpairs_between_channels[iChannel0] and x[1] == only_stimpairs_between_channels[iChannel1]) or (x[0] == only_stimpairs_between_channels[iChannel1] and x[1] == only_stimpairs_between_channels[iChannel0])]
+
+                else:
+                    # do not concatenate bidirectional pairs, pair order matters
+                    indices = [i for i, x in enumerate(trial_pairs) if
+                               x[0] == only_stimpairs_between_channels[iChannel0] and x[1] == only_stimpairs_between_channels[iChannel1]]
+
+                # add the pair if there are trials for it
+                if len(indices) > 0:
+                    stimpairs_onsets[only_stimpairs_between_channels[iChannel0] + '-' + only_stimpairs_between_channels[iChannel1]] = [trial_onsets[i] for i in indices]
+
+    # success, return the results
+    return trial_onsets, trial_pairs, stimpairs_onsets, bad_trial_onsets
 
 
 def load_ieeg_sidecar(filepath):
@@ -193,6 +248,7 @@ class BidsTsv(dict):
         # This has the advantage of being able to allocate memory for the values for each of the columns
         input = open(filepath, mode="r", encoding="utf-8")
         rawText = input.read()
+        input.close()
 
         # split the lines, remove empty lines, and ensure there are columns in the first line
         lines = [line for line in rawText.split("\n") if line]

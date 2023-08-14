@@ -15,7 +15,7 @@ from datetime import datetime
 from ieegprep.utils.console import ConsoleColors
 from ieegprep.utils.misc import time_func, clear_virtual_cache
 from ieegprep.bids.data_epoch import _prepare_input, _load_data_epochs__by_channels, _load_data_epochs__by_trials, _load_data_epochs__by_channels__withPrep
-from ieegprep.bids.sidecars import load_stim_event_info
+from ieegprep.bids.sidecars import load_elec_stim_events
 
 
 class TestEpochNoPreProcPerf(unittest.TestCase):
@@ -247,7 +247,7 @@ class TestEpochNoPreProcPerf(unittest.TestCase):
             tests[test_name]['cond_epoch_results_cached'] = []
 
             # load the stim trial onsets
-            trial_onsets, _, _ = load_stim_event_info(tests[test_name]['data_path'][0:tests[test_name]['data_path'].rindex("_ieeg")] + '_events.tsv')
+            trial_onsets, _, _, _ = load_elec_stim_events(tests[test_name]['data_path'][0:tests[test_name]['data_path'].rindex("_ieeg")] + '_events.tsv')
 
             # loop over the conditions
             for preload_condition in test['conditions']:

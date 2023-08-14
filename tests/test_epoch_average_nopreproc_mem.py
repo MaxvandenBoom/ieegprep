@@ -13,7 +13,7 @@ import os
 import sys
 import unittest
 from ieegprep.bids.data_epoch import _prepare_input, _load_data_epoch_averages__by_channel_condition_trial, _load_data_epoch_averages__by_condition_trials, _load_data_epochs__by_channels__withPrep
-from ieegprep.bids.sidecars import load_stim_event_info
+from ieegprep.bids.sidecars import load_elec_stim_events
 from ieegprep.utils.console import ConsoleColors
 from ieegprep.utils.misc import clear_virtual_cache
 from memory_profiler import memory_usage, profile
@@ -39,7 +39,7 @@ class TestEpochAverageNoPreProcMem(unittest.TestCase):
     #
     # by_channel_condition_trial
     #
-    '''
+
     def test01_epoch__by_channels__bv_multiplexed__no_preload_mem(self):
         test_name = 'Epoch & Average (no preprocessing), _load_data_epoch_averages__by_channel_condition_trial, Brainvision (multiplexed), no preload'
         self._run_test(test_name, self.bv_data_path, 'channel_condition_trial', preload_data=False, set_bv_orientation='MULTIPLEXED')
@@ -108,7 +108,7 @@ class TestEpochAverageNoPreProcMem(unittest.TestCase):
     def test16_epoch__by_condition_trials__mef__preload_mem(self):
         test_name = 'Epoch & Average (no preprocessing), _load_data_epoch_averages__by_condition_trials, MEF, preloaded'
         self._run_test(test_name, self.mef_data_path, 'condition_trials', preload_data=True)
-    '''
+
 
     #
     # _load_data_epochs__by_channels__withPrep (mem)
@@ -117,7 +117,7 @@ class TestEpochAverageNoPreProcMem(unittest.TestCase):
     def test17_epoch__by_prep_mem__bv_multiplexed__no_preload_mem(self):
         test_name = 'Epoch & Average (no preprocessing), _load_data_epochs__by_channels__withPrep (mem), Brainvision (multiplexed), no preload'
         self._run_test(test_name, self.bv_data_path, 'prep_mem', preload_data=False, set_bv_orientation='MULTIPLEXED')
-    '''
+
     def test18_epoch__by_prep_mem__bv_vectorized__no_preload_mem(self):
         test_name = 'Epoch & Average (no preprocessing), _load_data_epochs__by_channels__withPrep (mem), Brainvision (vectorized), no preload'
         self._run_test(test_name, self.bv_data_path, 'prep_mem', preload_data=False, set_bv_orientation='VECTORIZED')
@@ -182,7 +182,6 @@ class TestEpochAverageNoPreProcMem(unittest.TestCase):
     def test32_epoch__by_prep_mem__mef__preload_speed(self):
         test_name = 'Epoch & Average (no preprocessing), _load_data_epochs__by_channels__withPrep (speed), MEF, preloaded'
         self._run_test(test_name, self.mef_data_path, 'prep_speed', preload_data=True)
-    '''
 
 
     @profile
@@ -212,11 +211,11 @@ class TestEpochAverageNoPreProcMem(unittest.TestCase):
 
         elif by_routine in ('prep_mem', 'prep_speed'):
             sampling_rate, data, _ = _load_data_epochs__by_channels__withPrep(True, data_reader, data_reader.channel_names, conditions_onsets,
-                                                                           trial_epoch=self.test_trial_epoch,
-                                                                           baseline_method=baseline_method, baseline_epoch=self.test_baseline_epoch,
-                                                                           out_of_bound_method=out_of_bound_method, metric_callbacks=None,
-                                                                           high_pass=False, early_reref=None, line_noise_removal=None, late_reref=None,
-                                                                           priority='mem' if by_routine == 'prep_mem' else 'speed')
+                                                                              trial_epoch=self.test_trial_epoch,
+                                                                              baseline_method=baseline_method, baseline_epoch=self.test_baseline_epoch,
+                                                                              out_of_bound_method=out_of_bound_method, metric_callbacks=None,
+                                                                              high_pass=False, early_reref=None, line_noise_removal=None, late_reref=None,
+                                                                              priority='mem' if by_routine == 'prep_mem' else 'speed')
 
         data_reader.close()
 
@@ -229,23 +228,12 @@ class TestEpochAverageNoPreProcMem(unittest.TestCase):
         if set_bv_orientation is not None:
             print('  - set_bv_orientation: ' + set_bv_orientation)
 
-        #
+        # load the trial onsets for each of the stimulation conditions
         clear_virtual_cache()
-        trial_onsets, trial_pairs, _ = load_stim_event_info(data_path[0:data_path.rindex('_ieeg')] + '_events.tsv')
+        _, _, conditions_onsets, _ = load_elec_stim_events(data_path[0:data_path.rindex('_ieeg')] + '_events.tsv',
+                                                                                concat_bidirectional_stimpairs=True)
 
-        # extract conditions
-        conditions_onsets = dict()
-        for trial_index in range(len(trial_pairs)):
-            trial_pair = trial_pairs[trial_index]
-            if (trial_pair[1] + '-' + trial_pair[0]) in conditions_onsets.keys():
-                conditions_onsets[trial_pair[1] + '-' + trial_pair[0]].append(trial_onsets[trial_index])
-            if (trial_pair[0] + '-' + trial_pair[1]) in conditions_onsets.keys():
-                conditions_onsets[trial_pair[0] + '-' + trial_pair[1]].append(trial_onsets[trial_index])
-            else:
-                conditions_onsets[trial_pair[0] + '-' + trial_pair[1]] = [trial_onsets[trial_index]]
-        conditions_onsets = list(conditions_onsets.values())
-
-        #
+        # test the memory usage of the preparation and average epoch
         if set_bv_orientation is None:
             mem_usage = memory_usage((self._prepare_and_epoch, (data_path, by_routine, conditions_onsets, preload_data)),
                                      interval=0.005, include_children=True, multiprocess=True, max_usage=True)

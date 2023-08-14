@@ -73,13 +73,10 @@ from ieegprep import RerefStruct
 
 Load, epoch and get the average of each stimulated electrode pair (minimizing memory usage)
 ```
-from ieegprep import load_data_epochs_averages
+from ieegprep import load_data_epochs_averages, load_elec_stim_events
 
-# seperate the different stimulated electrode-pairs (e.g. Ch01-Ch02...) and use each stim-pair as a trial "condition"
-conditions_onsets = dict()
-for row in events.itertuples():
-    conditions_onsets.setdefault(row.electrical_stimulation_site, list())
-    conditions_onsets[row.electrical_stimulation_site].append(float(row.onset))
+# load the events file and retrieve the different stimulated electrode-pairs (e.g. Ch01-Ch02...) as conditions
+_, _, conditions_onsets, _ = load_elec_stim_events('/bids_data_root/subj-01/ieeg/sub-01_run-06_events.tsv')
 
 # retrieve epoch data averaged over conditions
 [srate, epochs, _] =  load_data_epochs_averages('/bids_data_root/subj-01/ieeg/sub-01_run-06_ieeg.vhdr',
