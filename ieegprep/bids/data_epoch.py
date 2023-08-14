@@ -165,67 +165,67 @@ def load_data_epochs_averages(data_path, retrieve_channels, conditions_onsets,
             load_data_epochs function can be used to retrieve the full dataset first and then perform calculations.
 
     Args:
-        data_path (str):                      Path to the data file or folder
-        retrieve_channels (list or tuple):    The channels (by name) of which the data should be retrieved, the output
-                                              will be sorted accordingly
-        conditions_onsets (2d list or tuple): A two-dimensional list to indicate the conditions, and the onsets
-                                              of the trials that belong to each condition.
-                                              (format: conditions x condition onsets)
-        trial_epoch (tuple):                  The time-span that will be considered as the signal belonging to a single
-                                              trial. Expressed as a tuple with the start- and end-point in seconds
-                                              relative to onset of the trial (e.g. the standard tuple of '-1, 3' will
-                                              extract the signal in the period from 1s before the trial onset to 3s
-                                              after the trial onset).
-        baseline_norm (None or str):          Baseline normalization setting [None, 'Mean' or 'Median']. If other
-                                              than None, normalizes each trial epoch by subtracting the mean or median
-                                              of part of the trial (the epoch of the trial indicated in baseline_epoch)
-        baseline_epoch (tuple):               The time-span on which the baseline is calculated, expressed as a tuple with
-                                              the start- and end-point in seconds relative to the trial onset (e.g. the
-                                              standard tuple of '-1, -.1' will use the period from 1s before the trial
-                                              onset to 100ms before the trial onset to calculate the baseline on);
-                                              this argument is only used when baseline_norm is set to mean or median
-        out_of_bound_handling (str):          Configure the handling of out-of-bound trial epochs;
-                                                 'error': (default) Throw an error and return when any epoch is out of bound;
-                                                 'first_last_only': Allows only the first trial epoch to start before the
-                                                                    data-set and the last trial epoch to end beyond the
-                                                                    length of the data-set, the trial epochs will be padded
-                                                                    with NaN values. Note that the first and last trial are
-                                                                    determined by the first and last entry in the 'onsets'
-                                                                    parameter, which is not sorted by this function;
-                                                 'allow':           Allow trial epochs to be out-of-bound, NaNs values will
-                                                                    be used for part of, or the entire, the trial epoch
-        metric_callbacks (func or tuple):     Function or tuple of functions that are called to calculate metrics based
-                                              on subsets of the un-averaged data. The function(s) are called per
-                                              with the following input arguments:
-                                                 sampling_rate -    The sampling rate of the data
-                                                 data -             A subset of the data in a 2d array: trials x samples
-                                                 baseline -         The corresponding baseline values for the trials
-                                              If callbacks are defined, a third variable is returned that holds the
-                                              return values of the metric callbacks in the format: channel x condition x metric
-        high_pass (bool):                     Preprocess with high-pass filtering (true) or without filtering (false)
-        early_reref (None or RerefStruct):    Preprocess with early (before line-noise removal) re-referencing. Generate a
-                                              RerefStruct instance using one of the factory methods (e.g. generate_car) and
-                                              pass it here to allow for re-referencing. Pass None to skip early re-referencing.
-        line_noise_removal (None or int):     Whether to preprocess with line-noise removal. If an integer (e.g. 50 or 60) is
-                                              passed, then a notch filter will be applied around that number. Passing None
-                                              will disable line-noise removal.
-        late_reref (None or RerefStruct):     Preprocess with late (after line-noise removal) re-referencing. Generate a
-                                              RerefStruct instance using one of the factory methods (e.g. generate_car) and
-                                              pass it here to allow for re-referencing. Pass None to skip late re-referencing.
-        preload_data (bool):                  Preload the entire dataset before processing. Preloading is faster but requires
-                                              significantly more memory
-        preproc_priority (str):               When preprocessing is required, the priority can be set to
-                                              either 'mem' (default) or 'speed'
+        data_path (str):                        Path to the data file or folder
+        retrieve_channels (list or tuple):      The channels (by name) of which the data should be retrieved, the output
+                                                will be sorted accordingly
+        conditions_onsets (dict or list/tuple): A dictionary or tuple/list that holds one entry for each condition, with
+                                                each entry in the dictionary or list expected to hold a list/tuple with
+                                                the trial onset values for that condition.
+        trial_epoch (tuple):                    The time-span that will be considered as the signal belonging to a single
+                                                trial. Expressed as a tuple with the start- and end-point in seconds
+                                                relative to onset of the trial (e.g. the standard tuple of '-1, 3' will
+                                                extract the signal in the period from 1s before the trial onset to 3s
+                                                after the trial onset).
+        baseline_norm (None or str):            Baseline normalization setting [None, 'Mean' or 'Median']. If other
+                                                than None, normalizes each trial epoch by subtracting the mean or median
+                                                of part of the trial (the epoch of the trial indicated in baseline_epoch)
+        baseline_epoch (tuple):                 The time-span on which the baseline is calculated, expressed as a tuple with
+                                                the start- and end-point in seconds relative to the trial onset (e.g. the
+                                                standard tuple of '-1, -.1' will use the period from 1s before the trial
+                                                onset to 100ms before the trial onset to calculate the baseline on);
+                                                this argument is only used when baseline_norm is set to mean or median
+        out_of_bound_handling (str):            Configure the handling of out-of-bound trial epochs;
+                                                   'error': (default) Throw an error and return when any epoch is out of bound;
+                                                   'first_last_only': Allows only the first trial epoch to start before the
+                                                                      data-set and the last trial epoch to end beyond the
+                                                                      length of the data-set, the trial epochs will be padded
+                                                                      with NaN values. Note that the first and last trial are
+                                                                      determined by the first and last entry in the 'onsets'
+                                                                      parameter, which is not sorted by this function;
+                                                   'allow':           Allow trial epochs to be out-of-bound, NaNs values will
+                                                                      be used for part of, or the entire, the trial epoch
+        metric_callbacks (func or tuple):       Function or tuple of functions that are called to calculate metrics based
+                                                on subsets of the un-averaged data. The function(s) are called per
+                                                with the following input arguments:
+                                                   sampling_rate -    The sampling rate of the data
+                                                   data -             A subset of the data in a 2d array: trials x samples
+                                                   baseline -         The corresponding baseline values for the trials
+                                                If callbacks are defined, a third variable is returned that holds the
+                                                return values of the metric callbacks in the format: channel x condition x metric
+        high_pass (bool):                       Preprocess with high-pass filtering (true) or without filtering (false)
+        early_reref (None or RerefStruct):      Preprocess with early (before line-noise removal) re-referencing. Generate a
+                                                RerefStruct instance using one of the factory methods (e.g. generate_car) and
+                                                pass it here to allow for re-referencing. Pass None to skip early re-referencing.
+        line_noise_removal (None or int):       Whether to preprocess with line-noise removal. If an integer (e.g. 50 or 60) is
+                                                passed, then a notch filter will be applied around that number. Passing None
+                                                will disable line-noise removal.
+        late_reref (None or RerefStruct):       Preprocess with late (after line-noise removal) re-referencing. Generate a
+                                                RerefStruct instance using one of the factory methods (e.g. generate_car) and
+                                                pass it here to allow for re-referencing. Pass None to skip late re-referencing.
+        preload_data (bool):                    Preload the entire dataset before processing. Preloading is faster but requires
+                                                significantly more memory
+        preproc_priority (str):                 When preprocessing is required, the priority can be set to
+                                                either 'mem' (default) or 'speed'
 
     Returns:
-        sampling_rate (int or double):        The sampling rate at which the data was acquired
-        data (ndarray):                       A three-dimensional array with signal averages per channel and condition
-                                              (format: channel x condition x samples); or None when an error occurs
-        metrics (ndarray):                    If metric callbacks are specified, will return a three-dimensional array
-                                              with the metric callback results (format: channel x condition x metric),
-                                              else wise None
+        sampling_rate (int or double):          The sampling rate at which the data was acquired
+        data (ndarray):                         A three-dimensional array with signal averages per channel and condition
+                                                (format: channel x condition x samples); or None when an error occurs
+        metrics (ndarray):                      If metric callbacks are specified, will return a three-dimensional array
+                                                with the metric callback results (format: channel x condition x metric),
+                                                else wise None
 
-    Note: this function input arguments are (seconds) relative to trial onsets
+    Note: the epoch input arguments for this function are in seconds relative to trial onsets
     """
 
     #
@@ -661,12 +661,23 @@ def _load_data_epoch_averages__by_condition_trials(data_reader, retrieve_channel
     # create progress bar
     print_progressbar(0, len(conditions_onsets), prefix='Progress:', suffix='Complete', length=50)
 
+    # if the conditions_onsets is a dict, then only retrieve the condition keys once
+    conditions_keys = None
+    if isinstance(conditions_onsets, dict):
+        conditions_keys = list(conditions_onsets.keys())
+
     # loop through the conditions
     for condition_idx in range(len(conditions_onsets)):
 
+        # retrieve the onsets for this condition
+        if conditions_keys is not None:
+            onsets = conditions_onsets[conditions_keys[condition_idx]]   # order is preserved since Python 3.7
+        else:
+            onsets = conditions_onsets[condition_idx]
+
         # initialize a buffer to put all the data for this condition in (channels x trials x samples)
         try:
-            condition_data = allocate_array((len(retrieve_channels), len(conditions_onsets[condition_idx]), trial_num_samples),
+            condition_data = allocate_array((len(retrieve_channels), len(onsets), trial_num_samples),
                                             fill_value=np.nan, dtype=np.float64)
         except MemoryError:
             raise MemoryError('Not enough memory create an condition-data matrix')
@@ -678,18 +689,18 @@ def _load_data_epoch_averages__by_condition_trials(data_reader, retrieve_channel
         baseline_data = None
         if not baseline_method == 0 and metric_callbacks is not None:
             try:
-                baseline_data = allocate_array((len(retrieve_channels), len(conditions_onsets[condition_idx]), baseline_num_samples),
+                baseline_data = allocate_array((len(retrieve_channels), len(onsets), baseline_num_samples),
                                                fill_value=np.nan, dtype=np.float64)
             except MemoryError:
                 raise MemoryError('Not enough memory create temporary baseline-data matrix')
 
         # loop through the trials in the condition
-        for trial_idx in range(len(conditions_onsets[condition_idx])):
+        for trial_idx in range(len(onsets)):
 
             # calculate the sample indices
-            trial_sample_start = int(round((conditions_onsets[condition_idx][trial_idx] + trial_epoch[0]) * data_reader.sampling_rate))
+            trial_sample_start = int(round((onsets[trial_idx] + trial_epoch[0]) * data_reader.sampling_rate))
             trial_sample_end = trial_sample_start + trial_num_samples
-            baseline_start_sample = int(round((conditions_onsets[condition_idx][trial_idx] + baseline_epoch[0]) * data_reader.sampling_rate)) - trial_sample_start
+            baseline_start_sample = int(round((onsets[trial_idx] + baseline_epoch[0]) * data_reader.sampling_rate)) - trial_sample_start
             baseline_end_sample = baseline_start_sample + baseline_num_samples
             local_start = 0
             local_end = trial_num_samples
@@ -697,45 +708,45 @@ def _load_data_epoch_averages__by_condition_trials(data_reader, retrieve_channel
             # check whether the trial epoch is within bounds
             if trial_sample_end < 0:
                 if (out_of_bound_method == 1 and condition_idx == 0 and trial_idx == 0) or out_of_bound_method == 2:
-                    logging.warning('Cannot extract the trial with onset ' + str(conditions_onsets[condition_idx][trial_idx]) + ', the end of the trial-epoch lies before the start of the data-set.')
+                    logging.warning('Cannot extract the trial with onset ' + str(onsets[trial_idx]) + ', the end of the trial-epoch lies before the start of the data-set.')
                     continue
                 else:
-                    logging.error('Cannot extract the trial with onset ' + str(conditions_onsets[condition_idx][trial_idx]) + ', the end of the trial-epoch lies before the start of the data-set. Use a different out_of_bound_handling argument to allow out-of-bound trial epochs')
+                    logging.error('Cannot extract the trial with onset ' + str(onsets[trial_idx]) + ', the end of the trial-epoch lies before the start of the data-set. Use a different out_of_bound_handling argument to allow out-of-bound trial epochs')
                     raise RuntimeError('Cannot extract trial')
             if trial_sample_start < 0:
                 if (out_of_bound_method == 1 and condition_idx == 0 and trial_idx == 0) or out_of_bound_method == 2:
-                    logging.warning('Cannot extract the trial with onset ' + str(conditions_onsets[condition_idx][trial_idx]) + ', the start of the trial-epoch lies before the start of the data-set.')
+                    logging.warning('Cannot extract the trial with onset ' + str(onsets[trial_idx]) + ', the start of the trial-epoch lies before the start of the data-set.')
                     local_start = trial_sample_start * -1
                     trial_sample_start = 0
                 else:
-                    logging.error('Cannot extract the trial with onset ' + str(conditions_onsets[condition_idx][trial_idx]) + ', the start of the trial-epoch lies before the start of the data-set. Use a different out_of_bound_handling argument to allow out-of-bound trial epochs')
+                    logging.error('Cannot extract the trial with onset ' + str(onsets[trial_idx]) + ', the start of the trial-epoch lies before the start of the data-set. Use a different out_of_bound_handling argument to allow out-of-bound trial epochs')
                     raise RuntimeError('Cannot extract trial')
             if trial_sample_start > data_reader.num_samples:
-                if (out_of_bound_method == 1 and condition_idx == len(conditions_onsets) - 1 and trial_idx == len(conditions_onsets[condition_idx]) - 1) or out_of_bound_method == 2:
-                    logging.warning('Cannot extract the trial with onset ' + str(conditions_onsets[condition_idx][trial_idx]) + ', the start of the trial-epoch lies after the end of the data-set.')
+                if (out_of_bound_method == 1 and condition_idx == len(conditions_onsets) - 1 and trial_idx == len(onsets) - 1) or out_of_bound_method == 2:
+                    logging.warning('Cannot extract the trial with onset ' + str(onsets[trial_idx]) + ', the start of the trial-epoch lies after the end of the data-set.')
                     continue
                 else:
-                    logging.error('Cannot extract the trial with onset ' + str(conditions_onsets[condition_idx][trial_idx]) + ', the start of the trial-epoch lies after the end of the data-set. Use a different out_of_bound_handling argument to allow out-of-bound trial epochs')
+                    logging.error('Cannot extract the trial with onset ' + str(onsets[trial_idx]) + ', the start of the trial-epoch lies after the end of the data-set. Use a different out_of_bound_handling argument to allow out-of-bound trial epochs')
                     raise RuntimeError('Cannot extract trial')
             if trial_sample_end > data_reader.num_samples:
-                if (out_of_bound_method == 1 and condition_idx == len(conditions_onsets) - 1 and trial_idx == len(conditions_onsets[condition_idx]) - 1) or out_of_bound_method == 2:
-                    logging.warning('Cannot extract the trial with onset ' + str(conditions_onsets[condition_idx][trial_idx]) + ', the end of the trial-epoch lies after the end of the data-set.')
+                if (out_of_bound_method == 1 and condition_idx == len(conditions_onsets) - 1 and trial_idx == len(onsets) - 1) or out_of_bound_method == 2:
+                    logging.warning('Cannot extract the trial with onset ' + str(onsets[trial_idx]) + ', the end of the trial-epoch lies after the end of the data-set.')
                     local_end = trial_num_samples - (trial_sample_end - data_reader.num_samples)
                     trial_sample_end = data_reader.num_samples
                 else:
-                    logging.error('Cannot extract the trial with onset ' + str(conditions_onsets[condition_idx][trial_idx]) + ', the end of the trial-epoch lies after the end of the data-set. Use a different out_of_bound_handling argument to allow out-of-bound trial epochs')
+                    logging.error('Cannot extract the trial with onset ' + str(onsets[trial_idx]) + ', the end of the trial-epoch lies after the end of the data-set. Use a different out_of_bound_handling argument to allow out-of-bound trial epochs')
                     raise RuntimeError('Cannot extract trial')
 
             # check whether the baseline is within bounds
             if baseline_method > 0:
                 if baseline_start_sample < 0:
-                    logging.error('Cannot extract the baseline for the trial with onset ' + str(conditions_onsets[condition_idx][trial_idx]) + ', the start of the baseline-epoch lies before the start of the trial-epoch')
+                    logging.error('Cannot extract the baseline for the trial with onset ' + str(onsets[trial_idx]) + ', the start of the baseline-epoch lies before the start of the trial-epoch')
                     raise RuntimeError('Cannot extract baseline')
                 if baseline_end_sample > trial_num_samples:
-                    logging.error('Cannot extract the baseline for the trial with onset ' + str(conditions_onsets[condition_idx][trial_idx]) + ', the end of the baseline-epoch lies outside of the trial-epoch')
+                    logging.error('Cannot extract the baseline for the trial with onset ' + str(onsets[trial_idx]) + ', the end of the baseline-epoch lies outside of the trial-epoch')
                     raise RuntimeError('Cannot extract baseline')
                 if baseline_start_sample < local_start or baseline_end_sample > local_end:
-                    logging.error('Cannot extract the baseline for the trial with onset ' + str(conditions_onsets[condition_idx][trial_idx]) + ', the range for the baseline lies outside of the trial-epoch because that part of the trial-epoch was out-of-bounds')
+                    logging.error('Cannot extract the baseline for the trial with onset ' + str(onsets[trial_idx]) + ', the range for the baseline lies outside of the trial-epoch because that part of the trial-epoch was out-of-bounds')
                     raise RuntimeError('Cannot extract baseline')
 
             # load the trial data
@@ -916,16 +927,27 @@ def __subload_data_epoch_averages__from_channel__by_condition_trials(ref_data, r
             exclude_epochs_starts[exclude_epoch_index] = int(round(exclude_epochs[exclude_epoch_index][0] * data_reader.sampling_rate))
             exclude_epochs_ends[exclude_epoch_index] = int(round(exclude_epochs[exclude_epoch_index][1] * data_reader.sampling_rate))
 
+    # if the conditions_onsets is a dict, then only retrieve the condition keys once
+    conditions_keys = None
+    if isinstance(conditions_onsets, dict):
+        conditions_keys = list(conditions_onsets.keys())
+
     # loop through the conditions
     for condition_idx in range(len(conditions_onsets)):
+
+        # retrieve the onsets for this condition
+        if conditions_keys is not None:
+            onsets = conditions_onsets[conditions_keys[condition_idx]]   # order is preserved since Python 3.7
+        else:
+            onsets = conditions_onsets[condition_idx]
 
         # initialize a buffer to put all the channel's epoch data for this condition in (trials x samples)
         # and
         try:
-            condition_epoch_data = allocate_array((len(conditions_onsets[condition_idx]), trial_num_samples),
+            condition_epoch_data = allocate_array((len(onsets), trial_num_samples),
                                                   fill_value=np.nan, dtype=np.float64)
             if var_epoch is not None:
-                condition_trial_variances = allocate_array(len(conditions_onsets[condition_idx]),
+                condition_trial_variances = allocate_array(len(onsets),
                                                            fill_value=np.nan, dtype=np.float64)
         except MemoryError:
             raise MemoryError('Not enough memory to create a temporary data matrix')
@@ -938,19 +960,19 @@ def __subload_data_epoch_averages__from_channel__by_condition_trials(ref_data, r
         baseline_data = None
         if baseline_method > 0 and metric_callbacks is not None:
             try:
-                baseline_data = allocate_array((len(conditions_onsets[condition_idx]), baseline_num_samples),
+                baseline_data = allocate_array((len(onsets), baseline_num_samples),
                                                fill_value=np.nan, dtype=np.float64)
             except MemoryError:
                 raise MemoryError('Not enough memory to create a temporary condition-channel baseline data matrix')
 
         # loop through the trials in the condition
-        for trial_idx in range(len(conditions_onsets[condition_idx])):
+        for trial_idx in range(len(onsets)):
 
             # calculate the sample indices
-            trial_sample_start = int(round((conditions_onsets[condition_idx][trial_idx] + trial_epoch[0]) * data_reader.sampling_rate))
+            trial_sample_start = int(round((onsets[trial_idx] + trial_epoch[0]) * data_reader.sampling_rate))
             trial_sample_end = trial_sample_start + trial_num_samples
             if baseline_method > 0:
-                baseline_start_sample = int(round((conditions_onsets[condition_idx][trial_idx] + baseline_epoch[0]) * data_reader.sampling_rate))
+                baseline_start_sample = int(round((onsets[trial_idx] + baseline_epoch[0]) * data_reader.sampling_rate))
                 baseline_end_sample = baseline_start_sample + baseline_num_samples
             local_start = 0
             local_end = trial_num_samples
@@ -959,42 +981,42 @@ def __subload_data_epoch_averages__from_channel__by_condition_trials(ref_data, r
             if trial_sample_end < 0:
                 if (out_of_bound_method == 1 and condition_idx == 0 and trial_idx == 0) or out_of_bound_method == 2:
                     if channel_idx == 0:
-                        logging.warning('Cannot extract the trial with onset ' + str(conditions_onsets[condition_idx][trial_idx]) + ', the end of the trial-epoch lies before the start of the data-set.')
+                        logging.warning('Cannot extract the trial with onset ' + str(onsets[trial_idx]) + ', the end of the trial-epoch lies before the start of the data-set.')
                     continue
                 else:
-                    logging.error('Cannot extract the trial with onset ' + str(conditions_onsets[condition_idx][trial_idx]) + ', the end of the trial-epoch lies before the start of the data-set. Use a different out_of_bound_handling argument to allow out-of-bound trial epochs')
+                    logging.error('Cannot extract the trial with onset ' + str(onsets[trial_idx]) + ', the end of the trial-epoch lies before the start of the data-set. Use a different out_of_bound_handling argument to allow out-of-bound trial epochs')
                     raise RuntimeError('Cannot extract trial')
             if trial_sample_start < 0:
                 if (out_of_bound_method == 1 and condition_idx == 0 and trial_idx == 0) or out_of_bound_method == 2:
                     if channel_idx == 0:
-                        logging.warning('Cannot extract the trial with onset ' + str(conditions_onsets[condition_idx][trial_idx]) + ', the start of the trial-epoch lies before the start of the data-set.')
+                        logging.warning('Cannot extract the trial with onset ' + str(onsets[trial_idx]) + ', the start of the trial-epoch lies before the start of the data-set.')
                     local_start = trial_sample_start * -1
                     trial_sample_start = 0
                 else:
-                    logging.error('Cannot extract the trial with onset ' + str(conditions_onsets[condition_idx][trial_idx]) + ', the start of the trial-epoch lies before the start of the data-set. Use a different out_of_bound_handling argument to allow out-of-bound trial epochs')
+                    logging.error('Cannot extract the trial with onset ' + str(onsets[trial_idx]) + ', the start of the trial-epoch lies before the start of the data-set. Use a different out_of_bound_handling argument to allow out-of-bound trial epochs')
                     raise RuntimeError('Cannot extract trial')
             if trial_sample_start > channel_num_samples:
-                if (out_of_bound_method == 1 and condition_idx == len(conditions_onsets) - 1 and trial_idx == len(conditions_onsets[condition_idx]) - 1) or out_of_bound_method == 2:
+                if (out_of_bound_method == 1 and condition_idx == len(conditions_onsets) - 1 and trial_idx == len(onsets) - 1) or out_of_bound_method == 2:
                     if channel_idx == 0:
-                        logging.warning('Cannot extract the trial with onset ' + str(conditions_onsets[condition_idx][trial_idx]) + ', the start of the trial-epoch lies after the end of the data-set.')
+                        logging.warning('Cannot extract the trial with onset ' + str(onsets[trial_idx]) + ', the start of the trial-epoch lies after the end of the data-set.')
                     continue
                 else:
-                    logging.error('Cannot extract the trial with onset ' + str(conditions_onsets[condition_idx][trial_idx]) + ', the start of the trial-epoch lies after the end of the data-set. Use a different out_of_bound_handling argument to allow out-of-bound trial epochs')
+                    logging.error('Cannot extract the trial with onset ' + str(onsets[trial_idx]) + ', the start of the trial-epoch lies after the end of the data-set. Use a different out_of_bound_handling argument to allow out-of-bound trial epochs')
                     raise RuntimeError('Cannot extract trial')
             if trial_sample_end > channel_num_samples:
-                if (out_of_bound_method == 1 and condition_idx == len(conditions_onsets) - 1 and trial_idx == len(conditions_onsets[condition_idx]) - 1) or out_of_bound_method == 2:
+                if (out_of_bound_method == 1 and condition_idx == len(conditions_onsets) - 1 and trial_idx == len(onsets) - 1) or out_of_bound_method == 2:
                     if channel_idx == 0:
-                        logging.warning('Cannot extract the trial with onset ' + str(conditions_onsets[condition_idx][trial_idx]) + ', the end of the trial-epoch lies after the end of the data-set.')
+                        logging.warning('Cannot extract the trial with onset ' + str(onsets[trial_idx]) + ', the end of the trial-epoch lies after the end of the data-set.')
                     local_end = trial_num_samples - (trial_sample_end - channel_num_samples)
                     trial_sample_end = channel_num_samples
                 else:
-                    logging.error('Cannot extract the trial with onset ' + str(conditions_onsets[condition_idx][trial_idx]) + ', the end of the trial-epoch lies after the end of the data-set. Use a different out_of_bound_handling argument to allow out-of-bound trial epochs')
+                    logging.error('Cannot extract the trial with onset ' + str(onsets[trial_idx]) + ', the end of the trial-epoch lies after the end of the data-set. Use a different out_of_bound_handling argument to allow out-of-bound trial epochs')
                     raise RuntimeError('Cannot extract trial')
 
             # check whether the baseline is within bounds
             if baseline_method > 0:
                 if baseline_start_sample < 0 or baseline_end_sample > channel_num_samples:
-                    logging.error('Cannot extract the baseline for the trial with onset ' + str(conditions_onsets[condition_idx][trial_idx]) + ', the range for the baseline lies outside of the data')
+                    logging.error('Cannot extract the baseline for the trial with onset ' + str(onsets[trial_idx]) + ', the range for the baseline lies outside of the data')
                     raise RuntimeError('Cannot extract baseline')
 
             # extract the trial data
@@ -1253,12 +1275,15 @@ def _load_data_epochs__by_channels__withPrep(average, data_reader, retrieve_chan
         retrieve_channels (list or tuple):  The channels (by name) of which the data should be retrieved, the output will be sorted accordingly
                                             Note: that this does not have to include the channels that are required for re-referencing
 
-        onsets (1d/2d list or tuple):       If only the epochs need to be extracted and returned (average=False) then this
-                                            argument should be a 1d list or tuple that holds the onsets of the trials around
+        onsets (list, tuple or dict):       If only the epochs need to be extracted and returned (average=False) then this
+                                            argument should be a list or tuple that holds the onsets of the trials around
                                             which to epoch the data.
-                                            If metric and average-epochs need to be calculated and returned (Average=True) then
-                                            this argument should be a 2d list or tuple that indicates the conditions, and
-                                            the onsets of the trials that belong to each condition. (format: conditions x condition onsets)
+
+                                            If average-epochs and metrics need to be calculated and returned (Average=True) then
+                                            this argument should be a dictionary or tuple/list that holds one entry for each
+                                            condition, with each entry in the dictionary or list expected to hold a list/tuple with
+                                            the trial onset values for that condition.
+
     """
 
     # Note: scipy is a pretty elaborate package (causing a significant, 100ms+ time to import uncached) and
