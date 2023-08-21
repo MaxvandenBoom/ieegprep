@@ -49,14 +49,14 @@ from ieegprep import load_data_epochs
 
 # retrieve epoched data
 [srate, epochs] = load_data_epochs( '/bids_data_root/subj-01/ieeg/sub-01_run-06_ieeg.vhdr',
-                                    retrieve_channels = channels['name'].tolist(),
-                                    onsets            = numpy.asfarray(events['onset']))
+                                    retrieve_channels = channels['name'],
+                                    onsets            = events['onset'])
 data_ch0_trial13 = epochs[1, 13, :]
 
 # retrieve epoched data specifying the epoch window and baseline normalization
 [srate, epochs] = load_data_epochs( '/bids_data_root/subj-01/ieeg/sub-01_run-06_ieeg.vhdr',
-                                    retrieve_channels = channels['name'].tolist(),
-                                    onsets            = numpy.asfarray(events['onset']),
+                                    retrieve_channels = channels['name'],
+                                    onsets            = events['onset'],
                                     trial_epoch       = (-1, 2),                         #  -1s < onset < 2s  
                                     baseline_norm     = 'Median',
                                     baseline_epoch    = (-1, -0.1))
@@ -65,7 +65,7 @@ data_ch0_trial13 = epochs[1, 13, :]
 from ieegprep import RerefStruct
 [srate, epochs] = load_data_epochs( '/bids_data_root/subj-01/ieeg/sub-01_run-06_ieeg.vhdr',
                                     retrieve_channels  = channels['name'].tolist(),
-                                    onsets             = numpy.asfarray(events['onset']),
+                                    onsets             = events['onset'],
                                     high_pass          = True,
                                     early_reref        = RerefStruct.generate_car(channels['name'].tolist()),
                                     line_noise_removal = 50)
@@ -80,8 +80,8 @@ _, _, conditions_onsets, _ = load_elec_stim_events('/bids_data_root/subj-01/ieeg
 
 # retrieve epoch data averaged over conditions
 [srate, epochs, _] =  load_data_epochs_averages('/bids_data_root/subj-01/ieeg/sub-01_run-06_ieeg.vhdr',
-                                                retrieve_channels = channels['name'].tolist(),
-                                                conditions_onsets = list(conditions_onsets.values()))
+                                                retrieve_channels = channels['name'],
+                                                conditions_onsets = conditions_onsets)
 data_respCh01_stimCh02_03 = epochs[1, 4, :]
 ```
 
