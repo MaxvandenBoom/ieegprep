@@ -64,7 +64,7 @@ data_ch0_trial13 = epochs[1, 13, :]
 # retrieve epoched data with pre-processing (high-pass filtering, CAR re-referencing and 50Hz line-noise removal)
 from ieegprep import RerefStruct
 [srate, epochs] = load_data_epochs( '/bids_data_root/subj-01/ieeg/sub-01_run-06_ieeg.vhdr',
-                                    retrieve_channels  = channels['name'].tolist(),
+                                    retrieve_channels  = channels['name'],
                                     onsets             = events['onset'],
                                     high_pass          = True,
                                     early_reref        = RerefStruct.generate_car(channels['name'].tolist()),
