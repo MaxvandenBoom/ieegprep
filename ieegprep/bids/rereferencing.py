@@ -71,7 +71,8 @@ class RerefStruct:
         unique_headboxes = sorted(list(set(channel_headboxes)))
         group_counter = 0
         for headbox in unique_headboxes:
-            if is_number(headbox) and not headbox.lower() == 'nan' and not headbox.lower() == 'n/a':
+
+            if is_number(headbox) and not str(headbox).lower() in ('nan', 'n/a'):
 
                 # find the channel names that belong to this headbox
                 headbox_channels = [channel_names[ind] for ind, x in enumerate(channel_headboxes) if x == headbox]
